@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <h2>Hello world</h2>
+
+    <form action="" id="form">
+        <input type="text" name="name">
+        <button>send</button>
+    </form>
+
+    <script>
+        let form = document.getElementById("form");
+
+        function startSocket() {
+
+            let promise = new Promise((resolve) => {
+                let data = localStorage.getItem("chat");
+                if (data) {
+                    resolve(data);
+                } else {
+                    console.log("no authorization");
+                }
+            }).then(function (data) {
+
+                let socket = new WebSocket("wss://conceptchat.brisklyminds.com/ws");
+
+                socket.onopen = function () {
+                    let dataObject = JSON.parse(data);
+                    dataObject.event = "authorization";
+                    socket.send(JSON.stringify(dataObject));
+                    console.log("Соединение установлено");
+                    // socket.send(JSON.stringify({
+                    //     action: "getOperators"
+                    // }))
+                }
+
+                socket.onmessage = function (event) {
+                    let data = JSON.parse(event.data);
+                    if(data.event === "close"){
+                        socket.close();
+                    }
+                  
+                }
+
+                socket.onclose = function (event) {
+                    console.log('[close] Соединение прервано');
+                }
+
+                socket.onerror = function () {
+                    console.log("error");
+                }
+
+            })
+        }
+
+        startSocket();
+
+        form.addEventListener("submit", async function (e) {
+            e.preventDefault();
+            let name = form.name.value;
+            let result = await fetch("https://conceptchat.brisklyminds.com/authorization", {
+                method: "POST",
+                body: JSON.stringify({
+                    name: name
+                }),
+                headers: {
+                    'Content-type': "application/json; charset=UTF-8"
+                }
+            });
+            let data = await result.json();
+            localStorage.setItem("chat", JSON.stringify(data));
+            startSocket();
+        });
+
+
+
+    </script>
+</body>
+
+</html>
