@@ -32,28 +32,56 @@ exports.sendMessage = async function ({
     from,
     message,
 }) {
-
     // console.log("phone_number_id: ", phone_number_id);
     // console.log("from: ", from);
     // console.log("message: ", message);
-
-    await axios({
-        method: "POST", // Required, HTTP method, a string, e.g. POST, GET
-        url:
-            "https://graph.facebook.com/v12.0/" +
-            phone_number_id +
-            "/messages?access_token=" +
-            token,
-        data: {
-            messaging_product: "whatsapp",
-            to: from,
-            text: { body: message },
-        },
-        headers: {
-            Authorization: "Bearer " + token,
-            "Content-Type": "application/json",
-        },
-    });
+    try {
+        let response = await axios({
+            method: "POST", // Required, HTTP method, a string, e.g. POST, GET
+            url:
+                "https://graph.facebook.com/v12.0/" +
+                phone_number_id +
+                "/messages?access_token=" +
+                token,
+            data: {
+                messaging_product: "whatsapp",
+                to: from,
+                text: { body: message },
+            },
+            headers: {
+                Authorization: "Bearer " + token,
+                "Content-Type": "application/json",
+            },
+        });
+        if (response.status === 200) {
+            let responseMessageWhatsapp = response.data;
+            // console.log("responseMessageWhatsapp: ", JSON.stringify(responseMessageWhatsapp.data));
+            return responseMessageWhatsapp;
+        } else {
+            throw new Error(`${response.status} ${response.statusText}`);
+        }
+    } catch (error) {
+        if (error.response) {
+            // The request was made and the server responded with a status code
+            console.error(
+                "Error uploading media. Server responded with:",
+                error.response.status,
+                error.response.data
+            );
+        } else if (error.request) {
+            // The request was made but no response was received
+            console.error(
+                "Error uploading media. No response received from the server."
+            );
+        } else {
+            // Something happened in setting up the request that triggered an Error
+            console.error(
+                "Error uploading media. Request setup error:",
+                error.message
+            );
+        }
+        return null;
+    }
 };
 
 exports.getFile = async function (messages, type) {
@@ -99,13 +127,13 @@ async function sendMessageFileId({
 }) {
     // console.log(phone_number_id, token, from, mimtype, id);
     let type = whatsappFileTypes.getType(mimtype);
-    console.log("phone_number_id: ", phone_number_id);
-    console.log("token: ", token);
-    console.log("from: ", from);
-    console.log("mimtype: ", mimtype);
-    console.log("id: ", id);
-    console.log("filename: ", filename);
-    console.log("type: ", type.toLowerCase());
+    // console.log("phone_number_id: ", phone_number_id);
+    // console.log("token: ", token);
+    // console.log("from: ", from);
+    // console.log("mimtype: ", mimtype);
+    // console.log("id: ", id);
+    // console.log("filename: ", filename);
+    // console.log("type: ", type.toLowerCase());
     if (type.toLowerCase() !== "document") {
         let response = await axios({
             method: "POST", // Required, HTTP method, a string, e.g. POST, GET
@@ -128,6 +156,7 @@ async function sendMessageFileId({
                 "Content-Type": "application/json",
             },
         });
+        return response.data;
     } else {
         let response = await axios({
             method: "POST", // Required, HTTP method, a string, e.g. POST, GET
@@ -151,21 +180,19 @@ async function sendMessageFileId({
                 "Content-Type": "application/json",
             },
         });
+        return response.data;
     }
-
     // console.log(response.data)
 }
 
 exports.uploadFile = async function ({ phoneNumberId, file, from }) {
-    const formData = new FormData();
-    formData.append("file", fs.createReadStream(file.path), {
-        contentType: file.mimetype,
-    });
-    formData.append("messaging_product", "whatsapp");
-    console.log("phoneNumberId: ", phoneNumberId);
-    console.log("file: ", file);
-    console.log("from: ", from)
     try {
+        const formData = new FormData();
+        formData.append("file", fs.createReadStream(file.path), {
+            contentType: file.mimetype,
+        });
+        console.log("file: ", file);
+        formData.append("messaging_product", "whatsapp");
         let response = await axios.post(
             `https://graph.facebook.com/v18.0/${phoneNumberId}/media`,
             formData,
@@ -177,7 +204,7 @@ exports.uploadFile = async function ({ phoneNumberId, file, from }) {
             }
         );
         console.log("Media upload successful:", response.data);
-        await sendMessageFileId({
+        let messageFileId = await sendMessageFileId({
             phone_number_id: phoneNumberId,
             token,
             from,
@@ -186,6 +213,7 @@ exports.uploadFile = async function ({ phoneNumberId, file, from }) {
             filename: file.filename,
         });
 
+        return messageFileId;
 
     } catch (error) {
         if (error.response) {

@@ -157,6 +157,7 @@ app.post("/chat/uploadFileWhatsapp", async function (req, res, next) {
                     headers,
                     file: req.file,
                     messageAuthor,
+<<<<<<< HEAD
                     chat
                 });
 
@@ -167,6 +168,11 @@ app.post("/chat/uploadFileWhatsapp", async function (req, res, next) {
                     file,
                     phoneNumberId: chat.phoneNumberId,
                     from: chat.phoneNumber
+=======
+                    chat,
+                    appealType: 'whatsapp',
+                    status: 'sent'
+>>>>>>> b788a5caadbd6da35278a71d1d85e96e3d72dc2c
                 })
 
                 let sendClients = [];
@@ -193,6 +199,17 @@ app.post("/chat/uploadFileWhatsapp", async function (req, res, next) {
                     })
                 }
 
+                file.path = file.path + ".mp3";
+                file.mimetype = "audio/mpeg";
+
+                let responseWhatsappFile = await whatsappApi.uploadFile({
+                    file,
+                    phoneNumberId: chat.phoneNumberId,
+                    from: chat.phoneNumber,
+
+                })
+                await conceptApi.updateMessage({ headers, messageId: newMessage.data.id, messageSecretKey: responseWhatsappFile.messages[0].id });
+                // console.log("responseWhatsappFile: ", responseWhatsappFile);
                 fs.unlink(file.path, err => {
                     if (err) throw err; // не удалось удалить файл
                     console.log('Файл успешно удалён');
@@ -205,8 +222,12 @@ app.post("/chat/uploadFileWhatsapp", async function (req, res, next) {
 
     } else {
 
-        let responseFileWhatsap = await whatsappApi.uploadFile({ phoneNumberId: chat.phoneNumberId, file, from: chat.phoneNumber });
-        let newMessage = await conceptApi.uploadFileAxelor({ file, headers, messageAuthor, chat });
+
+
+        let newMessage = await conceptApi.uploadFileAxelor({
+            file, headers, messageAuthor, chat, appealType: 'whatsapp',
+            status: 'sent'
+        });
 
         let sendClients = [];
         if (newMessage) {
@@ -231,7 +252,12 @@ app.post("/chat/uploadFileWhatsapp", async function (req, res, next) {
                 });
             })
         }
+
+        let responseWhatsappFile = await whatsappApi.uploadFile({ phoneNumberId: chat.phoneNumberId, file, from: chat.phoneNumber });
+        await conceptApi.deleteFile(file.path)
+        await conceptApi.updateMessage({ headers, messageId: newMessage.data.id, messageSecretKey: responseWhatsappFile.messages[0].id });
     }
+
 
 
     res.send(200);
@@ -256,6 +282,7 @@ app.post("/webhook", async (req, res) => {
 
             let userName = req.body.entry[0].changes[0].value.contacts[0].profile.name;
             let userPhoneNumber = req.body.entry[0].changes[0].value.contacts[0].wa_id;
+<<<<<<< HEAD
             let messages = req.body.entry[0].changes[0].value.messages[0];
             console.log("phone_number_id: ", phone_number_id);
             console.log("from: ", from);
@@ -266,6 +293,28 @@ app.post("/webhook", async (req, res) => {
             await conceptController.webhookController({ messages, phone_number_id, userName, userPhoneNumber, from });
 
           
+=======
+            let messages = req.body.entry[0].changes[0].value?.messages[0];
+            // console.log("phone_number_id: ", phone_number_id)
+            // console.log("from: ", from);
+            // console.log("msg_id: ", msg_id);
+            // console.log("userName: ", userName);
+            // console.log("userPhoneNumber: ", userPhoneNumber);
+            // console.log("messages: ", messages);
+            await conceptController.webhookController({ messages, phone_number_id, userName, userPhoneNumber, from, msg_id, appealType: 'whatsapp' });
+
+        }
+        if (req.body.entry &&
+            req.body.entry[0].changes &&
+            req.body.entry[0].changes[0] &&
+            req.body.entry[0].changes[0].value &&
+            req.body.entry[0].changes[0].value.statuses &&
+            req.body.entry[0].changes[0].value.statuses[0] &&
+            req.body.entry[0].changes[0].value.statuses[0].status === "delivered"
+        ) {
+            let statuses = req.body.entry[0].changes[0].value.statuses[0];
+            await conceptController.updateMessage({ id: statuses.id, status: statuses.status });
+>>>>>>> b788a5caadbd6da35278a71d1d85e96e3d72dc2c
         }
         res.sendStatus(200);
     } else {
@@ -275,6 +324,7 @@ app.post("/webhook", async (req, res) => {
 
 app.get("/webhook", (req, res) => {
     const verify_token = process.env.VERIFY_TOKEN;
+
 
     let mode = req.query["hub.mode"];
     let token = req.query["hub.verify_token"];
