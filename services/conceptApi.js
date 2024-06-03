@@ -248,7 +248,7 @@ async function getMessagesChat({ headers, chatId, limit = 40 }) {
     let obj = {
         offset: 0,
         limit: limit,
-        fields: ["fileSize", "fileName", "fileId", "fileType", "messageSecretKey", "type", "body", "timestamp", "fromNumber", "operatorName", "messageAuthor", "chat", "appeal", "flags"],
+        fields: ["fileSize", "fileName", "fileId", "fileType", "messageSecretKey", "type", "body", "timestamp", "fromNumber", "operatorName", "messageAuthor", "chat", "appeal", "flags", "status"],
         data: {
             criteria: [
                 {
@@ -300,7 +300,7 @@ async function isReadMessages({ headers, chat, currentUser }) {
 
 exports.isReadMessages = isReadMessages;
 
-async function createMessage({ message, chatId, messageAuthor, from, headers, file, appeal }) {
+async function createMessage({ message, chatId, messageAuthor, from, headers, file, appeal, status, msg_id, appealType }) {
     let obj = {
         type: message.type.toUpperCase(),
         timestamp: message.timestamp ?? null,
@@ -309,6 +309,9 @@ async function createMessage({ message, chatId, messageAuthor, from, headers, fi
         chat: {
             id: chatId,
         },
+        status: status ?? null,
+        messageSecretKey: msg_id ?? null,
+        appealType: appealType ?? null
     };
     if (message.text) {
         obj.body = message.text.body;
@@ -324,6 +327,7 @@ async function createMessage({ message, chatId, messageAuthor, from, headers, fi
         obj.fileId = file.fileId;
         obj.fileType = file.fileType;
     }
+    console.log("obj: ", obj);
 
     let response = await axios({
         headers: {
@@ -339,6 +343,87 @@ async function createMessage({ message, chatId, messageAuthor, from, headers, fi
 }
 
 exports.createMessage = createMessage;
+
+async function findeMessageSecretKey({ headers, messageSecretKey }) {
+    try {
+        let obj = {
+            offset: 0,
+            limit: 1,
+            fields: ["fileSize", "fileName", "fileId", "fileType", "messageSecretKey", "type", "body", "timestamp", "fromNumber", "operatorName", "messageAuthor", "chat", "appeal", "flags", "status"],
+            data: {
+                criteria: [
+                    {
+                        fieldName: "messageSecretKey",
+                        operator: "=",
+                        value: `${messageSecretKey}`
+                    }
+                ]
+            }
+        }
+        let response = await axios({
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            method: "POST",
+            url: DOMAIN + "/ws/rest/com.axelor.apps.msg.db.Messages/search",
+            data: JSON.stringify(obj),
+        });
+
+        if (response.status === 200) {
+            if (response.data.status === 0 && response.data.data) {
+                return response.data.data[0];
+            } else {
+                throw new Error(response.data?.error ?? response.data.data);
+            }
+        } else {
+            throw new Error(`${response.status} ${response.statusText}`);
+        }
+    } catch (error) {
+        return error.message;
+    }
+}
+
+exports.findeMessageSecretKey = findeMessageSecretKey;
+
+async function updateMessage({ headers, messageId, status, messageSecretKey }) {
+    try {
+        let obj = {
+            data: {
+                id: messageId,
+            }
+        }
+        if (status) {
+            obj.data.status = status;
+        }
+        if (messageSecretKey) {
+            obj.data.messageSecretKey = messageSecretKey;
+        }
+        let response = await axios({
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            method: "POST",
+            url: DOMAIN + "/ws/v2/rest/com.axelor.apps.msg.db.Messages",
+            data: JSON.stringify(obj),
+        });
+        if (response.status === 200) {
+            if (response.data.status === 0 && response.data.data) {
+                return response.data.data;
+            } else {
+                throw new Error(response.data?.error ?? response.data.data);
+            }
+        } else {
+            throw new Error(`${response.status} ${response.statusText}`);
+        }
+    } catch (error) {
+        return error.message;
+    }
+
+}
+
+exports.updateMessage = updateMessage;
 
 async function createChat({ headers, currentUserId, userId, typeChat }) {
     try {
@@ -671,9 +756,7 @@ async function getAppeal({ headers, appeal }) {
 
 exports.getAppeal = getAppeal;
 
-
-
-exports.uploadFileAxelor = async function ({ file, headers, messageAuthor, chat }) {
+exports.uploadFileAxelor = async function ({ file, headers, messageAuthor, chat, appealType, status }) {
     // let headers = await getHeaderConcept();
     let typeHeaders = {
         Cookie: headers,
@@ -745,11 +828,13 @@ exports.uploadFileAxelor = async function ({ file, headers, messageAuthor, chat 
         messageAuthor,
         headers,
         file: newMessageObj,
+        appealType,
+        status
     });
 
     // console.log(response);
 
-    deleteFile(file.path)
+    
     return response;
     // console.log(response);
 };
@@ -852,3 +937,5 @@ async function deleteFile(path) {
         throw err; // не удалось удалить файл
     }
 }
+
+exports.deleteFile = deleteFile;

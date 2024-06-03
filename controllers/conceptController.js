@@ -315,14 +315,38 @@ exports.sendMessageWhatsapp = async function ({ ws, data }) {
     let { messageAuthor, chat, message } = data;
     let headers = await conceptApi.getHeaderConcept();
     let newMessage = null;
-
-    console.log("clients: ", clients)
+    let sendClients = [];
+    for (let i = 0; i < chat.members.length; i++) {
+        let member = chat.members[i];
+        let sendClientArray = clients.filter(client => client.currentUserId === member.id);
+        if (sendClientArray.length > 0) {
+            sendClientArray.forEach((sendClient) => {
+                sendClients.push(sendClient);
+            });
+        }
+    }
 
     if (message.type.toLowerCase() === "text") {
+        newMessage = await conceptApi.createMessage({ message, chatId: chat.id, messageAuthor, from: chat.fromNumber, headers, status: 'sent', appealType: 'whatsapp' });
+        sendClients.forEach(sendClient => {
+            sendClient.ws.send(JSON.stringify({
+                event: "newMessage",
+                newMessage: newMessage.data ? newMessage.data : null
+            }));
+        });
         let responseMessageWhatsapp = await whatsappApi.sendMessage({ phone_number_id: chat.phoneNumberId, from: chat.phoneNumber, message: message.text.body });
-        newMessage = await conceptApi.createMessage({ message, chatId: chat.id, messageAuthor, from: chat.fromNumber, headers, appeal: chat.appeal });
+        let updateMessage = await conceptApi.updateMessage({ headers, messageId: newMessage.data.id, messageSecretKey: responseMessageWhatsapp.messages[0].id });
     }
-    
+
+
+
+}
+
+exports.updateMessage = async function ({ id, status }) {
+    let headers = await conceptApi.getHeaderConcept();
+    let findMessage = await conceptApi.findeMessageSecretKey({ headers, messageSecretKey: id });
+    let newMessage = await conceptApi.updateMessage({ headers, messageId: findMessage.id, status });
+    let chat = await conceptApi.getChat({ headers, chatId: findMessage.chat.id });
     let sendClients = [];
     for (let i = 0; i < chat.members.length; i++) {
         let member = chat.members[i];
@@ -335,8 +359,9 @@ exports.sendMessageWhatsapp = async function ({ ws, data }) {
     }
     sendClients.forEach(sendClient => {
         sendClient.ws.send(JSON.stringify({
-            event: "newMessage",
-            newMessage: newMessage.data ? newMessage.data : null
+            event: "statuses",
+            newMessage: findMessage,
+            status
         }));
     });
 }
@@ -367,51 +392,51 @@ function enqueueMessage(message) {
 
 startWorker().catch(console.error);
 
-exports.webhookController = async function webhookController({ messages, phone_number_id, userName, userPhoneNumber }) {
+exports.webhookController = async function webhookController({ messages, phone_number_id, userName, userPhoneNumber, msg_id, appealType }) {
     try {
         // console.log(messages);
-        enqueueMessage({ messages, phone_number_id, userName, userPhoneNumber });
+        enqueueMessage({ messages, phone_number_id, userName, userPhoneNumber, msg_id, appealType });
         // webhookSync({phone_number_id, chat,from, messages, userName, headers, token, msg_id});
     } finally {
     }
 };
 
-async function createMessageWhatsapp({ headers, messages, chatId, appeal, phone_number_id }) {
+async function createMessageWhatsapp({ headers, messages, chatId, appeal, phone_number_id, msg_id, appealType }) {
 
-    console.log("messages.type: ", messages.type);
+
 
     if (messages.type === "text") {
-        let newMessage = await conceptApi.createMessage({ headers, chatId, appeal, message: messages });
+        let newMessage = await conceptApi.createMessage({ headers, chatId, appeal, message: messages, msg_id, appealType });
         return newMessage;
     }
 
     if (messages.type === "image") {
         let responseFile = await whatsappApi.getFile(messages, "image");
         let responseDmsFile = await conceptApi.uploadFileChunks({ headers, messages, chat: { id: chatId }, type: "image", responseFile });
-        let newMessage = await conceptApi.createMessage({ headers, chatId, appeal, message: messages, file: responseDmsFile });
-        console.log("responseFile: ", responseFile);
-        console.log("responseDmsFile: ", responseDmsFile);
-        console.log("newMessage: ", newMessage);
+        let newMessage = await conceptApi.createMessage({ headers, chatId, appeal, message: messages, file: responseDmsFile, msg_id, appealType });
+        // console.log("responseFile: ", responseFile);
+        // console.log("responseDmsFile: ", responseDmsFile);
+        // console.log("newMessage: ", newMessage);
         return newMessage;
     }
 
     if (messages.type === "document") {
         let responseFile = await whatsappApi.getFile(messages, "document");
         let responseDmsFile = await conceptApi.uploadFileChunks({ headers, messages, chat: { id: chatId }, type: "document", responseFile });
-        let newMessage = await conceptApi.createMessage({ headers, chatId, appeal, message: messages, file: responseDmsFile });
-        console.log("responseFile: ", responseFile);
-        console.log("responseDmsFile: ", responseDmsFile);
-        console.log("newMessage: ", newMessage);
+        let newMessage = await conceptApi.createMessage({ headers, chatId, appeal, message: messages, file: responseDmsFile, msg_id, appealType });
+        // console.log("responseFile: ", responseFile);
+        // console.log("responseDmsFile: ", responseDmsFile);
+        // console.log("newMessage: ", newMessage);
         return newMessage;
     }
 
     if (messages.type === "audio") {
         let responseFile = await whatsappApi.getFile(messages, "audio");
         let responseDmsFile = await conceptApi.uploadFileChunks({ headers, messages, chat: { id: chatId }, type: "audio", responseFile });
-        let newMessage = await conceptApi.createMessage({ headers, chatId, appeal, message: messages, file: responseDmsFile });
-        console.log("responseFile: ", responseFile);
-        console.log("responseDmsFile: ", responseDmsFile);
-        console.log("newMessage: ", newMessage);
+        let newMessage = await conceptApi.createMessage({ headers, chatId, appeal, message: messages, file: responseDmsFile, msg_id, appealType });
+        // console.log("responseFile: ", responseFile);
+        // console.log("responseDmsFile: ", responseDmsFile);
+        // console.log("newMessage: ", newMessage);
         return newMessage;
     } else {
         let autoMessage = {
@@ -427,26 +452,25 @@ async function createMessageWhatsapp({ headers, messages, chatId, appeal, phone_
 
 }
 
-async function newAppealorNewMessage({ messages, phone_number_id, userName, userPhoneNumber }) {
+async function newAppealorNewMessage({ messages, phone_number_id, userName, userPhoneNumber, msg_id, appealType }) {
     // console.log(messages);
     let headers = await conceptApi.getHeaderConcept();
     let appeal = null;
     let clientChat = null;
     appeal = await conceptApi.existenceCheckAppeal({ headers, userPhoneNumber });
-    console.log(appeal)
     if (!appeal) {
         appeal = await conceptApi.createAppeal({ headers, userName, userPhoneNumber });
         if (!appeal?.chat) {
             clientChat = await conceptApi.createChatAppeal({ headers, phone_number_id, appealId: appeal.id, from: messages.from });
         }
-        let newMessage = await createMessageWhatsapp({ headers, messages, chatId: clientChat?.id, phone_number_id });
+        let newMessage = await createMessageWhatsapp({ headers, messages, chatId: clientChat?.id, appeal, phone_number_id, msg_id, appealType });
         let newAppeal = await conceptApi.getAppeal({ headers, appeal });
         openAppealsClients.forEach((ws) => {
             ws.send(JSON.stringify({ event: "newAppeal", newAppeal }));
         });
     } else {
         clientChat = appeal.chat;
-        let newMessage = await createMessageWhatsapp({ headers, chatId: clientChat?.id, appeal, messages, phone_number_id });
+        let newMessage = await createMessageWhatsapp({ headers, chatId: clientChat?.id, appeal, messages, phone_number_id, msg_id, appealType });
         if (+appeal.status === 3) {
             let updateAppeal = await conceptApi.updateAppeal({ headers, appeal, status: 1 });
             openAppealsClients.forEach((ws) => {
@@ -455,7 +479,7 @@ async function newAppealorNewMessage({ messages, phone_number_id, userName, user
         }
         if (+appeal.status === 1 && newMessage) {
             openAppealsClients.forEach((ws) => {
-                ws.send(JSON.stringify({ event: "newMessageAppeal", newMessage: newMessage.data }));
+                ws.send(JSON.stringify({ event: "newMessageAppeal", newMessage: { ...newMessage.data, appeal: { ...newMessage.appeal, name: appeal.name } } }));
             });
         } else if (+appeal.status === 2 && newMessage) {
             let chat = await conceptApi.getChat({ headers, chatId: newMessage.data.chat.id });
@@ -464,7 +488,7 @@ async function newAppealorNewMessage({ messages, phone_number_id, userName, user
                     if (el.currentUserId === member.id) {
                         el.ws.send(JSON.stringify({
                             event: "newMessageAppeal",
-                            newMessage: newMessage.data
+                            newMessage: { ...newMessage.data, appeal: { ...newMessage.appeal, name: appeal.name } }
                         }));
                     }
                 });
