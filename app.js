@@ -158,7 +158,7 @@ app.post("/chat/uploadFileWhatsapp", async function (req, res, next) {
                     file: req.file,
                     messageAuthor,
                     chat
-                })
+                });
 
                 file.path = file.path + ".mp3";
                 file.mimetype = "audio/mpeg";
@@ -240,7 +240,8 @@ app.post("/chat/uploadFileWhatsapp", async function (req, res, next) {
 app.post("/webhook", async (req, res) => {
     let body = req.body;
 
-    // console.log(JSON.stringify(req.body, null, 2));
+    console.log(JSON.stringify(req.body, null, 2));
+    // console.log(body);
 
     if (req.body.object) {
         if (req.body.entry &&
@@ -256,14 +257,15 @@ app.post("/webhook", async (req, res) => {
             let userName = req.body.entry[0].changes[0].value.contacts[0].profile.name;
             let userPhoneNumber = req.body.entry[0].changes[0].value.contacts[0].wa_id;
             let messages = req.body.entry[0].changes[0].value.messages[0];
-            await conceptController.webhookController({ messages, phone_number_id, userName, userPhoneNumber, from });
-
-            console.log("phone_number_id: ", phone_number_id)
+            console.log("phone_number_id: ", phone_number_id);
             console.log("from: ", from);
             console.log("msg_id: ", msg_id);
             console.log("userName: ", userName);
             console.log("userPhoneNumber: ", userPhoneNumber);
             console.log("messages: ", messages);
+            await conceptController.webhookController({ messages, phone_number_id, userName, userPhoneNumber, from });
+
+          
         }
         res.sendStatus(200);
     } else {

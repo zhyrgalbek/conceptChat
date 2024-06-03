@@ -5,7 +5,8 @@ require('dotenv').config();
 
 const SECRET_KEY = process.env.SECRET_KEY;
 
-const clients = [];
+let clients = [];
+let openAppealsClients = [];
 
 exports.clients = clients;
 
@@ -43,6 +44,7 @@ exports.getAllChats = async function ({ ws, data }) {
     const currentUserId = data.currentUserId.id;
     if (data.connect) {
         clients.push({ ws, currentUserId });
+        console.log("clients: ", clients);
     }
     const headers = await conceptApi.getHeaderConcept();
     // const chats = await conceptApi.getAllChats({ typeChats: 1, headers, currentUserId });
@@ -118,11 +120,13 @@ exports.sendMessage = async function ({ ws, data }) {
         })
     }
 
+    console.log("clients: ", clients);
+
 }
 
 exports.uploadFile = async function ({ ws, data }) {
     let { file, messageAuthor, chat } = data;
-    console.log("file: ", file);
+    // console.log("file: ", file);
     // let headers = await conceptApi.getHeaderConcept();
     // let response = await conceptApi.uploadFileAxelor({ file, headers, messageAuthor, chat });
 
@@ -145,6 +149,7 @@ exports.getChat = async function ({ ws, data }) {
     if (data.currentUserId && data.connect) {
         let currentUserId = data?.currentUserId.id;
         clients.push({ ws, currentUserId });
+        console.log("clients: ", clients)
     }
     const headers = await conceptApi.getHeaderConcept();
     const chat = await conceptApi.getChat({ headers, chatId });
@@ -152,7 +157,7 @@ exports.getChat = async function ({ ws, data }) {
         const appeal = await conceptApi.getAppeal({ headers, appeal: chat.appeal });
         ws.send(JSON.stringify({
             event: "getChat",
-            chat: { ...chat, phoneNumber: appeal.phoneNumber, name: appeal.name }
+            chat: { ...chat, phoneNumber: appeal.phoneNumber, name: appeal.name, saleOrder: appeal.saleOrder }
         }));
         return;
     }
@@ -199,7 +204,6 @@ exports.createorGetChat = async function ({ ws, data }) {
     }
 }
 
-let openAppealsClients = [];
 
 exports.allAppeals = async function ({ ws, data }) {
 
@@ -219,6 +223,7 @@ exports.closeAppeals = async function ({ ws, data }) {
     } else {
         // console.log('Ошибка: клиент не найден в списке');
     }
+    console.log("clients: ", clients);
 }
 
 exports.updateAppealAndChat = async function ({ ws, data }) {
@@ -233,6 +238,7 @@ exports.updateAppealAndChat = async function ({ ws, data }) {
     let newCompletedUsers = completedUsers.filter(el => el.id !== currentUserId.id);
     members.push({ id: currentUserId.id });
     let responseChat = await conceptApi.updateChat({ headers, chat, members, completedUsers: newCompletedUsers });
+    console.log("clients: ", clients);
     clients.forEach((client) => {
         if (client.currentUserId === currentUserId.id) {
             client.ws.send(JSON.stringify({
@@ -247,9 +253,9 @@ exports.updateAppealAndChat = async function ({ ws, data }) {
             }));
         }
     });
-    console.log("chat: ", chat);
-    console.log("responseChat: ", responseChat);
-    console.log("members: ", members);
+    // console.log("chat: ", chat);
+    // console.log("responseChat: ", responseChat);
+    // console.log("members: ", members);
 
     openAppealsClients.forEach((openAppeal) => {
         openAppeal.send(JSON.stringify({
@@ -273,12 +279,12 @@ exports.getChatorderpage = async function ({ ws, data }) {
 }
 
 exports.completeClient = async function ({ ws, data }) {
-    console.log("completeClient: ", data);
+    // console.log("completeClient: ", data);
 
     let { chat, currentUserId } = data;
     let appeal = chat.appeal;
 
-    console.log("appeal: ", appeal);
+    console.log("clients: ", clients);
 
     let headers = await conceptApi.getHeaderConcept();
     let newAppeal = await conceptApi.updateAppeal({ headers, appeal, status: 3 });
@@ -299,11 +305,13 @@ exports.completeClient = async function ({ ws, data }) {
                 }
             }));
         }
-    })
+    });
 
 
 
-    console.log("newAppeal: ", newAppeal);
+    // console.log("newAppeal: ", newAppeal);
+
+    // console.log("clients: ", clients);
 
 
     // ???
@@ -320,9 +328,9 @@ exports.sendMessageWhatsapp = async function ({ ws, data }) {
 
     if (message.type.toLowerCase() === "text") {
         let responseMessageWhatsapp = await whatsappApi.sendMessage({ phone_number_id: chat.phoneNumberId, from: chat.phoneNumber, message: message.text.body });
-        newMessage = await conceptApi.createMessage({ message, chatId: chat.id, messageAuthor, from: chat.fromNumber, headers, appeal: chat.appeal });
+        newMessage = await conceptApi.createMessage({ message, chatId: chat.id, messageAuthor, from: chat.fromNumber, headers });
     }
-    
+
     let sendClients = [];
     for (let i = 0; i < chat.members.length; i++) {
         let member = chat.members[i];
@@ -389,9 +397,9 @@ async function createMessageWhatsapp({ headers, messages, chatId, appeal, phone_
         let responseFile = await whatsappApi.getFile(messages, "image");
         let responseDmsFile = await conceptApi.uploadFileChunks({ headers, messages, chat: { id: chatId }, type: "image", responseFile });
         let newMessage = await conceptApi.createMessage({ headers, chatId, appeal, message: messages, file: responseDmsFile });
-        console.log("responseFile: ", responseFile);
-        console.log("responseDmsFile: ", responseDmsFile);
-        console.log("newMessage: ", newMessage);
+        // console.log("responseFile: ", responseFile);
+        // console.log("responseDmsFile: ", responseDmsFile);
+        // console.log("newMessage: ", newMessage);
         return newMessage;
     }
 
@@ -399,9 +407,9 @@ async function createMessageWhatsapp({ headers, messages, chatId, appeal, phone_
         let responseFile = await whatsappApi.getFile(messages, "document");
         let responseDmsFile = await conceptApi.uploadFileChunks({ headers, messages, chat: { id: chatId }, type: "document", responseFile });
         let newMessage = await conceptApi.createMessage({ headers, chatId, appeal, message: messages, file: responseDmsFile });
-        console.log("responseFile: ", responseFile);
-        console.log("responseDmsFile: ", responseDmsFile);
-        console.log("newMessage: ", newMessage);
+        // console.log("responseFile: ", responseFile);
+        // console.log("responseDmsFile: ", responseDmsFile);
+        // console.log("newMessage: ", newMessage);
         return newMessage;
     }
 
@@ -409,9 +417,9 @@ async function createMessageWhatsapp({ headers, messages, chatId, appeal, phone_
         let responseFile = await whatsappApi.getFile(messages, "audio");
         let responseDmsFile = await conceptApi.uploadFileChunks({ headers, messages, chat: { id: chatId }, type: "audio", responseFile });
         let newMessage = await conceptApi.createMessage({ headers, chatId, appeal, message: messages, file: responseDmsFile });
-        console.log("responseFile: ", responseFile);
-        console.log("responseDmsFile: ", responseDmsFile);
-        console.log("newMessage: ", newMessage);
+        // console.log("responseFile: ", responseFile);
+        // console.log("responseDmsFile: ", responseDmsFile);
+        // console.log("newMessage: ", newMessage);
         return newMessage;
     } else {
         let autoMessage = {
@@ -433,7 +441,7 @@ async function newAppealorNewMessage({ messages, phone_number_id, userName, user
     let appeal = null;
     let clientChat = null;
     appeal = await conceptApi.existenceCheckAppeal({ headers, userPhoneNumber });
-    console.log(appeal)
+    // console.log(appeal)
     if (!appeal) {
         appeal = await conceptApi.createAppeal({ headers, userName, userPhoneNumber });
         if (!appeal?.chat) {
@@ -464,7 +472,7 @@ async function newAppealorNewMessage({ messages, phone_number_id, userName, user
                     if (el.currentUserId === member.id) {
                         el.ws.send(JSON.stringify({
                             event: "newMessageAppeal",
-                            newMessage: newMessage.data
+                            newMessage: { ...newMessage.data, appeal: { ...newMessage.appeal, name: appeal.name, } }
                         }));
                     }
                 });
