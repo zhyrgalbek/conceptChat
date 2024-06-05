@@ -248,6 +248,7 @@ async function getMessagesChat({ headers, chatId, limit = 40 }) {
     let obj = {
         offset: 0,
         limit: limit,
+        sortBy: ["-createdOn"],
         fields: ["fileSize", "fileName", "fileId", "fileType", "messageSecretKey", "type", "body", "timestamp", "fromNumber", "operatorName", "messageAuthor", "chat", "appeal", "flags", "status"],
         data: {
             criteria: [
@@ -265,7 +266,7 @@ async function getMessagesChat({ headers, chatId, limit = 40 }) {
             Cookie: headers,
         },
         method: "POST",
-        url: DOMAIN + "/ws/rest/com.axelor.apps.msg.db.Messages/search",
+        url: DOMAIN + "/ws/rest/com.axelor.message.db.Message/search",
         data: JSON.stringify(obj),
     });
     if (response.data.data) {
@@ -366,7 +367,7 @@ async function findeMessageSecretKey({ headers, messageSecretKey }) {
                 Cookie: headers,
             },
             method: "POST",
-            url: DOMAIN + "/ws/rest/com.axelor.apps.msg.db.Messages/search",
+            url: DOMAIN + "/ws/rest/com.axelor.message.db.Message/search",
             data: JSON.stringify(obj),
         });
 
@@ -405,7 +406,7 @@ async function updateMessage({ headers, messageId, status, messageSecretKey }) {
                 Cookie: headers,
             },
             method: "POST",
-            url: DOMAIN + "/ws/v2/rest/com.axelor.apps.msg.db.Messages",
+            url: DOMAIN + "/ws/v2/rest/com.axelor.message.db.Message",
             data: JSON.stringify(obj),
         });
         if (response.status === 200) {
@@ -834,7 +835,7 @@ exports.uploadFileAxelor = async function ({ file, headers, messageAuthor, chat,
 
     // console.log(response);
 
-    
+
     return response;
     // console.log(response);
 };

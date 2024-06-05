@@ -237,3 +237,55 @@ exports.uploadFile = async function ({ phoneNumberId, file, from }) {
         }
     }
 };
+
+exports.sendTemplate = async function ({ phoneNumber, templateName, code, phoneNumberId }) {
+    try {
+        let obj = {
+            messaging_product: "whatsapp",
+            to: phoneNumber,
+            type: "template",
+            template: {
+                name: templateName,
+                language: {
+                    code: code
+                }
+            }
+        }
+        let response = await axios({
+            method: "POST", // Required, HTTP method, a string, e.g. POST, GET
+            url: `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`,
+            data: obj,
+            headers: {
+                Authorization: "Bearer " + token,
+                "Content-Type": "application/json",
+            },
+        });
+        if (response.status === 200) {
+            let responseMessageWhatsapp = response.data;
+            // console.log("responseMessageWhatsapp: ", JSON.stringify(responseMessageWhatsapp.data));
+            return responseMessageWhatsapp;
+        } else {
+            throw new Error(`${response.status} ${response.statusText}`);
+        }
+    } catch (error) {
+        if (error.response) {
+            // The request was made and the server responded with a status code
+            console.error(
+                "Error uploading media. Server responded with:",
+                error.response.status,
+                error.response.data
+            );
+        } else if (error.request) {
+            // The request was made but no response was received
+            console.error(
+                "Error uploading media. No response received from the server."
+            );
+        } else {
+            // Something happened in setting up the request that triggered an Error
+            console.error(
+                "Error uploading media. Request setup error:",
+                error.message
+            );
+        }
+    }
+}
