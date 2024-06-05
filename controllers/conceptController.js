@@ -343,11 +343,6 @@ exports.sendMessageWhatsapp = async function ({ ws, data }) {
             }));
         });
         let responseMessageWhatsapp = await whatsappApi.sendMessage({ phone_number_id: chat.phoneNumberId, from: chat.phoneNumber, message: message.text.body });
-<<<<<<< HEAD
-        newMessage = await conceptApi.createMessage({ message, chatId: chat.id, messageAuthor, from: chat.fromNumber, headers });
-    }
-
-=======
         let updateMessage = await conceptApi.updateMessage({ headers, messageId: newMessage.data.id, messageSecretKey: responseMessageWhatsapp.messages[0].id });
     }
 
@@ -360,7 +355,6 @@ exports.updateMessage = async function ({ id, status }) {
     let findMessage = await conceptApi.findeMessageSecretKey({ headers, messageSecretKey: id });
     let newMessage = await conceptApi.updateMessage({ headers, messageId: findMessage.id, status });
     let chat = await conceptApi.getChat({ headers, chatId: findMessage.chat.id });
->>>>>>> b788a5caadbd6da35278a71d1d85e96e3d72dc2c
     let sendClients = [];
     for (let i = 0; i < chat.members.length; i++) {
         let member = chat.members[i];

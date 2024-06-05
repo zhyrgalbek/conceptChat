@@ -157,22 +157,9 @@ app.post("/chat/uploadFileWhatsapp", async function (req, res, next) {
                     headers,
                     file: req.file,
                     messageAuthor,
-<<<<<<< HEAD
-                    chat
-                });
-
-                file.path = file.path + ".mp3";
-                file.mimetype = "audio/mpeg";
-
-                await whatsappApi.uploadFile({
-                    file,
-                    phoneNumberId: chat.phoneNumberId,
-                    from: chat.phoneNumber
-=======
                     chat,
                     appealType: 'whatsapp',
                     status: 'sent'
->>>>>>> b788a5caadbd6da35278a71d1d85e96e3d72dc2c
                 })
 
                 let sendClients = [];
@@ -282,18 +269,6 @@ app.post("/webhook", async (req, res) => {
 
             let userName = req.body.entry[0].changes[0].value.contacts[0].profile.name;
             let userPhoneNumber = req.body.entry[0].changes[0].value.contacts[0].wa_id;
-<<<<<<< HEAD
-            let messages = req.body.entry[0].changes[0].value.messages[0];
-            console.log("phone_number_id: ", phone_number_id);
-            console.log("from: ", from);
-            console.log("msg_id: ", msg_id);
-            console.log("userName: ", userName);
-            console.log("userPhoneNumber: ", userPhoneNumber);
-            console.log("messages: ", messages);
-            await conceptController.webhookController({ messages, phone_number_id, userName, userPhoneNumber, from });
-
-          
-=======
             let messages = req.body.entry[0].changes[0].value?.messages[0];
             // console.log("phone_number_id: ", phone_number_id)
             // console.log("from: ", from);
@@ -314,7 +289,6 @@ app.post("/webhook", async (req, res) => {
         ) {
             let statuses = req.body.entry[0].changes[0].value.statuses[0];
             await conceptController.updateMessage({ id: statuses.id, status: statuses.status });
->>>>>>> b788a5caadbd6da35278a71d1d85e96e3d72dc2c
         }
         res.sendStatus(200);
     } else {
