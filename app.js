@@ -364,6 +364,9 @@ app.ws("/ws", (ws, req) => {
             case "sendMessageWhatsapp":
                 conceptController.sendMessageWhatsapp({ ws, data: data.data });
                 break;
+            case "sendTemplate":
+                conceptController.sendTemplate({ws, data: data.data});
+                break;
         }
     });
 
