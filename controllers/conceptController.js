@@ -210,13 +210,12 @@ exports.createorGetChat = async function ({ ws, data }) {
     }
 }
 
-
 exports.allAppeals = async function ({ ws, data }) {
 
     openAppealsClients.push(ws);
 
     let headers = await conceptApi.getHeaderConcept();
-    let response = await conceptApi.getAppeals({ headers });
+    let response = await conceptApi.getAppeals({ headers, status: 1 });
 
     ws.send(JSON.stringify({ event: "AllAppeals", appeals: response }));
 }
@@ -232,7 +231,34 @@ exports.closeAppeals = async function ({ ws, data }) {
     console.log("clients: ", clients);
 }
 
+exports.searchClients = async function ({ ws, data }) {
+    let { currentUserId, phoneNumber, name } = data;
+    console.log("searchClients: ", data);
+    let headers = await conceptApi.getHeaderConcept();
+    let searchClients = await conceptApi.searchAppeal({ headers, phoneNumber, name });
+    if (searchClients) {
+        ws.send(JSON.stringify({
+            event: "getClients",
+            clients: searchClients
+        }));
+        return;
+    }
+    ws.send(JSON.stringify({
+        event: "getClients",
+        clients: []
+    }));
+    // console.log("searchClients: ", searchClients);
 
+}
+
+exports.getClients = async function ({ ws, data }) {
+    let { currentUserId } = data;
+    let headers = await conceptApi.getHeaderConcept();
+    let clients = await conceptApi.getAppeals({ headers });
+
+    console.log("getClients: ", clients);
+    ws.send(JSON.stringify({ event: "getClients", clients }))
+}
 
 async function updateAppealAndChat({ ws, data }) {
     let appeal = data.appeal;

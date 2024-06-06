@@ -493,16 +493,20 @@ async function getChatTwoUsers({ headers, currentUserId: userId1, userId: userId
 
 exports.getChatTwoUsers = getChatTwoUsers;
 
-async function getAppeals({ headers }) {
+async function getAppeals({ headers, status }) {
     try {
         let obj = {
             offset: 0,
             limit: 12,
-            sortBy: ["-updatedOn"],
-            data: {
+            fields: ["name", "phoneNumber"],
+            sortBy: ["-updatedOn"]
+        }
+        if (status) {
+            obj.fields = ["status", "name", "phoneNumber", "createdOn"];
+            obj.data = {
                 _domain: "self.status = :status",
                 _domainContext: {
-                    status: 1
+                    status: status
                 }
             }
         }
@@ -568,6 +572,50 @@ async function createAppeal({ headers, userName, userPhoneNumber }) {
 
 exports.createAppeal = createAppeal;
 
+async function searchAppeal({ headers, phoneNumber, name }) {
+    try {
+        let obj = {
+            offset: 0,
+            limit: 12,
+            sortBy: ["-createdOn"],
+            data: {
+                criteria: [{
+                    operator: "or",
+                    criteria: [{
+                        fieldName: phoneNumber ? "phoneNumber" : name,
+                        operator: "like",
+                        value: phoneNumber ?? name
+                    }]
+                }]
+            }
+        }
+
+        let response = await axios({
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            method: "POST",
+            url: DOMAIN + "/ws/rest/com.axelor.apps.msg.db.Appeal/search",
+            data: JSON.stringify(obj),
+        });
+
+        if (response.status === 200) {
+            if (response.data.status === 0 && response.data.data) {
+                return response.data.data;
+            } else {
+                throw new Error(response.data.error ?? response.data.data);
+            }
+        } else {
+            throw new Error(`${response.status} ${response.statusText}`);
+        }
+    } catch (error) {
+        return error.message;
+    }
+}
+
+exports.searchAppeal = searchAppeal;
+
 async function createChatAppeal({ headers, phone_number_id, appealId, from }) {
     try {
 
@@ -607,6 +655,8 @@ async function createChatAppeal({ headers, phone_number_id, appealId, from }) {
 }
 
 exports.createChatAppeal = createChatAppeal;
+
+
 
 async function existenceCheckAppeal({ headers, userPhoneNumber }) {
     try {
