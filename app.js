@@ -365,7 +365,13 @@ app.ws("/ws", (ws, req) => {
                 conceptController.sendMessageWhatsapp({ ws, data: data.data });
                 break;
             case "sendTemplate":
-                conceptController.sendTemplate({ws, data: data.data});
+                conceptController.sendTemplate({ ws, data: data.data });
+                break;
+            case "searchClients":
+                conceptController.searchClients({ ws, data: data.data });
+                break;
+            case "getClients":
+                conceptController.getClients({ ws, data: data.data });
                 break;
         }
     });
