@@ -374,6 +374,9 @@ app.ws("/ws", (ws, req) => {
             case "getClients":
                 conceptController.getClients({ ws, data: data.data });
                 break;
+            case "createOrgetChatClient":
+                conceptController.createOrgetChatClient({ ws, data: data.data });
+                break;
         }
     });
 

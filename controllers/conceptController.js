@@ -251,13 +251,107 @@ exports.searchClients = async function ({ ws, data }) {
 
 }
 
+exports.createOrgetChatClient = async function ({ ws, data }) {
+    let { currentUserId, client, typeChat } = data;
+    console.log("createOrgetChatClient: ", data);
+    let headers = await conceptApi.getHeaderConcept();
+    console.log("headers: ", headers);
+    // let appeal = await conceptApi.searchAppeal({ headers, client });
+    let chat = await conceptApi.getChat({ headers, chatId: client["chat.id"] });
+    if (chat["appeal.status"] === 1) {
+        await updateAppealAndChat({
+            ws, data: {
+                appeal: {
+                    id: chat.appeal.id,
+                    $version: chat.appeal.version,
+                    chat: {
+                        id: chat.id
+                    }
+                }, status: 2, currentUserId
+            }
+        });
+    }
+    if (chat["appeal.status"] === 2 || chat["appeal.status"] === 3) {
+        let completedUsers = chat.completedUsers ?? [];
+        let members = chat.members ?? [];
+        let findUserMembers = members.find(el => el.id === currentUserId.id);
+        let findUserCompleted = completedUsers.find(el => el.id === currentUserId.id);
+        let responseAppeal = null;
+        if (!findUserMembers && chat["appeal.status"] === 3) {
+            console.log("111111111")
+            members.push({ id: currentUserId.id });
+            responseAppeal = await conceptApi.updateAppeal({ headers, appeal: chat.appeal, status: 2 });
+            // responseAppeal = await conceptApi.searchAppea({headers, client: responseAppeal});
+        }
+        if (!findUserMembers && chat["appeal.status"] === 2) {
+            console.log("222222222")
+            members.push({ id: currentUserId.id });
+            completedUsers.push({ id: currentUserId.id });
+        }
+        // if (findUserMembers && chat["appeal.status"] === 3) {
+        //     console.log("3333333333")
+        //     completedUsers = completedUsers.filter(el => el.id !== currentUserId.id);
+        //     responseAppeal = await conceptApi.updateAppeal({ headers, appeal: chat.appeal, status: 2 });
+        //     // responseAppeal = await conceptApi.searchAppea({headers, client: responseAppeal});
+        // }
+        // if (findUserMembers && chat["appeal.status"] === 2) {
+        //     completedUsers = completedUsers.filter(el => el.id !== currentUserId);
+        //     // completedUsers = completedUsers.filter(el => el.id !== currentUserId);
+        // }
+        let responseChat = await conceptApi.updateChat({ headers, chat, members, completedUsers });
+        let lastMessage = await conceptApi.lastMessageChat({ headers, chat });
+        console.log("lastMessage: ", lastMessage);
+        let sendClients = [];
+        for (let i = 0; i < responseChat.members.length; i++) {
+            let member = responseChat.members[i];
+            let sendClientArray = clients.filter(client => client.currentUserId === member.id);
+            if (sendClientArray.length > 0) {
+                sendClientArray.forEach((sendClient) => {
+                    sendClients.push(sendClient);
+                });
+            }
+        }
+        sendClients.forEach(sendClient => {
+            sendClient.ws.send(JSON.stringify({
+                event: "newWorkAppeal",
+                newClient: {
+                    ...responseChat,
+                    appealId: client.id,
+                    fullName: client.name,
+                    phoneNumber: client.phoneNumber,
+                    lastMessage: lastMessage,
+                    appeal: {
+                        ...client,
+                        status: responseAppeal ? responseAppeal.status : client.status,
+                        client: {
+                            fullName: client["client.fullName"],
+                            id: client["client.id"],
+                            mobilePhone: client["client.mobilePhone"]
+                        }
+                    }
+                }
+            }));
+        });
+
+        openAppealsClients.forEach((openAppeal) => {
+            openAppeal.send(JSON.stringify({
+                event: "workAppeal",
+                appeal: responseAppeal ?? client
+            }));
+        });
+    }
+}
+
 exports.getClients = async function ({ ws, data }) {
+
     let { currentUserId } = data;
     let headers = await conceptApi.getHeaderConcept();
     let clients = await conceptApi.getAppeals({ headers });
 
     console.log("getClients: ", clients);
-    ws.send(JSON.stringify({ event: "getClients", clients }))
+
+    ws.send(JSON.stringify({ event: "getClients", clients }));
+
 }
 
 async function updateAppealAndChat({ ws, data }) {
@@ -266,6 +360,7 @@ async function updateAppealAndChat({ ws, data }) {
     let currentUserId = data.currentUserId;
     let headers = await conceptApi.getHeaderConcept();
     let responseAppeal = await conceptApi.updateAppeal({ headers, appeal, status });
+    let searchAppeal = await conceptApi.searchAppeal({ headers, client: responseAppeal });
     let chat = await conceptApi.getChat({ headers, chatId: appeal.chat.id });
     let members = chat.members ?? [];
     let completedUsers = chat.completedUsers ?? [];
@@ -293,7 +388,12 @@ async function updateAppealAndChat({ ws, data }) {
                 lastMessage: responseAppeal.lastMessage,
                 appeal: {
                     ...responseChat.appeal,
-                    status: responseAppeal.status
+                    status: responseAppeal.status,
+                    client: {
+                        fullName: searchAppeal[0]["client.fullName"],
+                        id: searchAppeal[0]["client.id"],
+                        mobilePhone: searchAppeal[0]["client.mobilePhone"]
+                    }
                 }
             }
         }));
@@ -327,6 +427,7 @@ exports.completeClient = async function ({ ws, data }) {
 
     let headers = await conceptApi.getHeaderConcept();
     let newAppeal = await conceptApi.updateAppeal({ headers, appeal, status: 3 });
+    let searchAppeal = await conceptApi.searchAppeal({ headers, client: newAppeal });
     let newCompletedUsers = chat.completedUsers ?? [];
     newCompletedUsers.push(currentUserId);
     let newChat = await conceptApi.updateChat({ headers, chat, completedUsers: newCompletedUsers });
@@ -352,7 +453,12 @@ exports.completeClient = async function ({ ws, data }) {
                 lastMessage: newAppeal.lastMessage,
                 appeal: {
                     ...newAppeal,
-                    status: newAppeal.status
+                    status: newAppeal.status,
+                    client: {
+                        fullName: searchAppeal[0]["client.fullName"],
+                        id: searchAppeal[0]["client.id"],
+                        mobilePhone: searchAppeal[0]["client.mobilePhone"]
+                    }
                 }
             },
         }));

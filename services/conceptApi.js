@@ -49,44 +49,10 @@ async function getUsers({ headers }) {
             "criteria": [{
                 "operator": "or",
                 "criteria": [{
-                    "fieldName": "code",
+                    "fieldName": "roles",
                     "operator": "=",
-                    "value": "t.vsyakih"
-                }, {
-                    "fieldName": "code",
-                    "operator": "=",
-                    "value": "tqm@concept.kg"
-                }, {
-                    "fieldName": "code",
-                    "operator": "=",
-                    "value": "kam@concept.kg"
-                },
-                {
-                    "fieldName": "code",
-                    "operator": "=",
-                    "value": "managing.director@concept.kg"
-                },
-                {
-                    "fieldName": "code",
-                    "operator": "=",
-                    "value": "gulnura.amiraeva@gmail.com"
-                },
-                {
-                    "fieldName": "code",
-                    "operator": "=",
-                    "value": "mari030319995@gmail.com"
-                },
-                {
-                    "fieldName": "code",
-                    "operator": "=",
-                    "value": "air.manager@concept.kg"
-                },
-                {
-                    "fieldName": "code",
-                    "operator": "=",
-                    "value": "concept"
-                },
-                ]
+                    "value": "Admin"
+                }]
             }]
         }
     }
@@ -112,7 +78,7 @@ async function getChat({ headers, chatId }) {
     let obj = {
         "offset": 0,
         "limit": 10,
-        "fields": ["phoneNumberId", "fromNumber", "chatSeans", "typeChats", "members", "unreadMessageCount", "appeal", "completedUsers"],
+        "fields": ["phoneNumberId", "fromNumber", "chatSeans", "typeChats", "members", "unreadMessageCount", "appeal", "completedUsers", "appeal.id", "appeal.status"],
         "data": {
             "criteria": [{
                 "fieldName": "id",
@@ -277,6 +243,48 @@ async function getMessagesChat({ headers, chatId, limit = 40 }) {
 }
 
 exports.getMessagesChat = getMessagesChat;
+
+async function lastMessageChat({ headers, chat }) {
+    try {
+        let obj = {
+            offset: 0,
+            limit: 1,
+            sortBy: ["-createdOn"],
+            fields: ["fileSize", "fileName", "fileId", "fileType", "messageSecretKey", "type", "body", "timestamp", "fromNumber", "operatorName", "messageAuthor", "chat", "appeal", "flags", "status"],
+            data: {
+                criteria: [
+                    {
+                        fieldName: "chat.id",
+                        operator: "=",
+                        value: chat.id
+                    }
+                ]
+            }
+        };
+        let response = await axios({
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            method: "POST",
+            url: DOMAIN + "/ws/rest/com.axelor.message.db.Message/search",
+            data: JSON.stringify(obj),
+        });
+        if (response.status === 200) {
+            if (response.data.status === 0 && response.data.data) {
+                return response.data.data[0];
+            } else {
+                throw new Error(response.data?.error ?? response.data.data);
+            }
+        } else {
+            throw new Error(`${response.status} ${response.statusText}`);
+        }
+    } catch (error) {
+        return error.message;
+    }
+}
+
+exports.lastMessageChat = lastMessageChat;
 
 async function isReadMessages({ headers, chat, currentUser }) {
     let obj = {
@@ -495,20 +503,22 @@ exports.getChatTwoUsers = getChatTwoUsers;
 
 async function getAppeals({ headers, status }) {
     try {
-        let obj = {
-            offset: 0,
-            limit: 12,
-            fields: ["name", "phoneNumber"],
-            sortBy: ["-updatedOn"]
-        }
+        let obj = {};
         if (status) {
-            obj.fields = ["status", "name", "phoneNumber", "createdOn"];
+            obj.offset = 0;
+            obj.limit = 12;
+            obj.sortBy = ["-updatedOn"];
             obj.data = {
                 _domain: "self.status = :status",
                 _domainContext: {
                     status: status
                 }
             }
+        } else {
+            obj.offset = 0;
+            obj.limit = 12;
+            obj.fields = ["name", "phoneNumber", "client.mobilePhone", "client.fullName", "client.name", "client.id", "chat.id", "status"];
+            obj.sortBy = ["-updatedOn"];
         }
         let response = await axios({
             headers: {
@@ -532,6 +542,53 @@ async function getAppeals({ headers, status }) {
         return error.message;
     }
 }
+
+async function getPartner({ headers, id }) {
+    try {
+        let obj = {
+            offset: 0,
+            limit: 12,
+            fields: ["fullName", "mobilePhone"],
+            sortBy: ["-updatedOn"],
+            data: {
+                criteria: [
+                    {
+                        operator: "or",
+                        criteria: [{
+                            fieldName: "id",
+                            operator: "=",
+                            value: id
+                        }]
+                    }
+                ]
+            }
+        }
+
+        let response = await axios({
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            method: "POST",
+            url: DOMAIN + "/ws/rest/com.axelor.apps.base.db.Partner/search",
+            data: JSON.stringify(obj),
+        });
+        if (response.status === 200) {
+            if (response.data.status === 0 && response.data.data) {
+                return response.data.data[0];
+            } else {
+                throw new Error(response.data?.error ?? response.data.data);
+            }
+        } else {
+            throw new Error(`${response.status} ${response.statusText}`);
+        }
+    } catch (error) {
+        return error.message;
+    }
+}
+
+exports.getPartner = getPartner;
+
 
 exports.getAppeals = getAppeals;
 
@@ -572,23 +629,49 @@ async function createAppeal({ headers, userName, userPhoneNumber }) {
 
 exports.createAppeal = createAppeal;
 
-async function searchAppeal({ headers, phoneNumber, name }) {
+async function searchAppeal({ headers, phoneNumber, name, client }) {
     try {
+
         let obj = {
             offset: 0,
             limit: 12,
+            fields: ["name", "phoneNumber", "client.mobilePhone", "client.fullName", "client.name", "client.id", "chat.id", "status", "lastMessage"],
             sortBy: ["-createdOn"],
             data: {
                 criteria: [{
                     operator: "or",
-                    criteria: [{
-                        fieldName: phoneNumber ? "phoneNumber" : name,
-                        operator: "like",
-                        value: phoneNumber ?? name
-                    }]
                 }]
             }
         }
+
+        if (client) {
+            obj.data.criteria[0].criteria = [{
+                fieldName: "id",
+                operator: "=",
+                value: client.id
+            }];
+        }
+
+        if (phoneNumber) {
+            obj.data.criteria[0].criteria = [{
+                fieldName: "phoneNumber",
+                operator: "like",
+                value: phoneNumber
+            }]
+        }
+        if (name) {
+            obj.data.criteria[0].criteria = [{
+                fieldName: "name",
+                operator: "like",
+                value: name
+            }, {
+                fieldName: "client.fullName",
+                operator: "like",
+                value: name
+            }]
+        }
+
+        console.log("obj: ", obj);
 
         let response = await axios({
             headers: {
@@ -654,9 +737,9 @@ async function createChatAppeal({ headers, phone_number_id, appealId, from }) {
     }
 }
 
+
+
 exports.createChatAppeal = createChatAppeal;
-
-
 
 async function existenceCheckAppeal({ headers, userPhoneNumber }) {
     try {
