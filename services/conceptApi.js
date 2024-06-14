@@ -74,6 +74,55 @@ async function getUsers({ headers }) {
 
 exports.getUsers = getUsers;
 
+async function searchUsers({ headers, fullName }) {
+    try {
+        let obj = {
+            "offset": 0,
+            "limit": 40,
+            "fields": ["fullName", "code", "group"],
+            "sortBy": ["fullName"],
+            "data": {
+                "criteria": [{
+                    "operator": "and",
+                    "criteria": [{
+                        "fieldName": "fullName",
+                        "operator": "like",
+                        "value": fullName
+                    }, {
+                        "fieldName": "roles",
+                        "operator": "=",
+                        "value": "Admin"
+                    }]
+                }]
+            }
+        }
+
+        let response = await axios({
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            method: "POST",
+            url: DOMAIN + "/ws/rest/com.axelor.auth.db.User/search",
+            data: JSON.stringify(obj),
+        });
+
+        if (response.status === 200) {
+            if (response.data.status === 0 && response.data.data) {
+                return response.data.data;
+            } else {
+                throw new Error(response.data?.error ?? response.data.data);
+            }
+        } else {
+            throw new Error(`${response.status} ${response.statusText}`);
+        }
+    } catch (error) {
+        return error.message;
+    }
+}
+
+exports.searchUsers = searchUsers;
+
 async function getChat({ headers, chatId }) {
     let obj = {
         "offset": 0,
@@ -215,7 +264,7 @@ async function getMessagesChat({ headers, chatId, limit = 40 }) {
         offset: 0,
         limit: limit,
         sortBy: ["-createdOn"],
-        fields: ["fileSize", "fileName", "fileId", "fileType", "messageSecretKey", "type", "body", "timestamp", "fromNumber", "operatorName", "messageAuthor", "chat", "appeal", "flags", "status"],
+        fields: ["fileSize", "fileName", "fileId", "fileType", "messageSecretKey", "type", "body", "timestamp", "fromNumber", "operatorName", "messageAuthor", "chat", "appeal", "flags", "status", "appealType"],
         data: {
             criteria: [
                 {
@@ -592,14 +641,14 @@ exports.getPartner = getPartner;
 
 exports.getAppeals = getAppeals;
 
-async function createAppeal({ headers, userName, userPhoneNumber }) {
+async function createAppeal({ headers, userName, userPhoneNumber, status = 1 }) {
     try {
 
         let obj = {
             data: {
-                name: userName,
+                name: userName ?? "",
                 phoneNumber: userPhoneNumber,
-                status: 1
+                status: status
             }
         }
 
@@ -699,6 +748,70 @@ async function searchAppeal({ headers, phoneNumber, name, client }) {
 
 exports.searchAppeal = searchAppeal;
 
+async function searchActiveClients({ headers, phoneNumber, name, currentUserId }) {
+    try {
+        let searchText = phoneNumber ?? name;
+        let response = await axios({
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            method: "GET",
+            url: DOMAIN + "/ws/chats/" + currentUserId.id + "?clientSearch=" + searchText,
+        });
+
+        if (response.status === 200) {
+            if (response.data.status === 0 && response.data.data) {
+                return response.data.data;
+            }
+            if (response.data.status === -1) {
+                return [];
+            } else {
+                throw new Error(response.data.error ?? response.data.data);
+            }
+        } else {
+            throw new Error(`${response.status} ${response.statusText}`);
+        }
+    } catch (error) {
+        return error.message;
+    }
+}
+
+exports.searchActiveClients = searchActiveClients;
+
+async function searchActiveUsers({ headers, name, currentUserId }) {
+    try {
+        let searchText = name;
+        let response = await axios({
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            method: "GET",
+            url: DOMAIN + "/ws/chats/" + currentUserId.id + "?userSearch=" + searchText,
+        });
+
+        console.log("response.status: ", response.status)
+
+        if (response.status === 200) {
+            if (response.data.status === 0 && response.data.data) {
+                return response.data.data;
+            }
+            if (response.data.status === -1) {
+                return [];
+            } else {
+                throw new Error(response.data.error ?? response.data.data);
+            }
+        } else {
+            throw new Error(`${response.status} ${response.statusText}`);
+        }
+    } catch (error) {
+        return error.message;
+    }
+}
+
+exports.searchActiveUsers = searchActiveUsers;
+
 async function createChatAppeal({ headers, phone_number_id, appealId, from }) {
     try {
 
@@ -736,8 +849,6 @@ async function createChatAppeal({ headers, phone_number_id, appealId, from }) {
         return error.message;
     }
 }
-
-
 
 exports.createChatAppeal = createChatAppeal;
 
@@ -856,6 +967,7 @@ async function getAppeal({ headers, appeal }) {
         let obj = {
             offset: 0,
             limit: 1,
+            fields: ["name", "phoneNumber", "client.mobilePhone", "client.fullName", "client.name", "client.id", "chat.id", "status", "lastMessage", "saleOrders"],
             sortBy: ["-createdOn"],
             data: {
                 _domain: "self.id = :appealId",

@@ -285,7 +285,14 @@ app.post("/webhook", async (req, res) => {
             req.body.entry[0].changes[0].value &&
             req.body.entry[0].changes[0].value.statuses &&
             req.body.entry[0].changes[0].value.statuses[0] &&
-            req.body.entry[0].changes[0].value.statuses[0].status === "delivered"
+            req.body.entry[0].changes[0].value.statuses[0].status === "delivered" ||
+            req.body.entry &&
+            req.body.entry[0].changes &&
+            req.body.entry[0].changes[0] &&
+            req.body.entry[0].changes[0].value &&
+            req.body.entry[0].changes[0].value.statuses &&
+            req.body.entry[0].changes[0].value.statuses[0] &&
+            req.body.entry[0].changes[0].value.statuses[0].status === "failed"
         ) {
             let statuses = req.body.entry[0].changes[0].value.statuses[0];
             await conceptController.updateMessage({ id: statuses.id, status: statuses.status });
@@ -350,6 +357,9 @@ app.ws("/ws", (ws, req) => {
             case "getContacts":
                 conceptController.getContacts({ ws, data: data.data });
                 break;
+            case "searchContacts":
+                conceptController.searchContacts({ ws, data: data.data });
+                break;
             case "createorGetChat":
                 conceptController.createorGetChat({ ws, data: data.data });
                 break;
@@ -376,6 +386,15 @@ app.ws("/ws", (ws, req) => {
                 break;
             case "createOrgetChatClient":
                 conceptController.createOrgetChatClient({ ws, data: data.data });
+                break;
+            case "searchActiveClients":
+                conceptController.searchActiveClients({ ws, data: data.data });
+                break;
+            case "searchActiveUsers":
+                conceptController.searchActiveUsers({ ws, data: data.data });
+                break;
+            case "updateAppeal":
+                conceptController.updateAppealAndChat({ ws, data: data.data });
                 break;
         }
     });
