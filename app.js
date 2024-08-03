@@ -109,8 +109,9 @@ app.post("/chat/uploadFileAxelor", async function (req, res, next) {
     let chat = JSON.parse(req.body.chat);
     console.log(messageAuthor, chat);
     let file = req.file;
+    let caption = req.body.caption ? JSON.parse(req.body?.caption) : null;
     let headers = await conceptApi.getHeaderConcept();
-    let newMessage = await conceptApi.uploadFileAxelor({ file, headers, messageAuthor, chat });
+    let newMessage = await conceptApi.uploadFileAxelor({ file, headers, messageAuthor, chat, caption });
     let sendClients = [];
     if (newMessage) {
         new Promise(resolve => {
@@ -145,6 +146,7 @@ app.post("/chat/uploadFileWhatsapp", async function (req, res, next) {
     let chat = JSON.parse(req.body.chat);
     console.log(messageAuthor, chat);
     let file = req.file;
+    let caption = req.body.caption ? JSON.parse(req.body?.caption) : null;
     let headers = await conceptApi.getHeaderConcept();
     if (file.mimetype === "audio/webm") {
         ffmpeg()
@@ -160,7 +162,7 @@ app.post("/chat/uploadFileWhatsapp", async function (req, res, next) {
                     chat,
                     appealType: 'whatsapp',
                     status: 'sent'
-                })
+                });
 
                 let sendClients = [];
                 if (newMessage) {
@@ -179,8 +181,8 @@ app.post("/chat/uploadFileWhatsapp", async function (req, res, next) {
                     }).then(() => {
                         sendClients.forEach(sendClient => {
                             sendClient.ws.send(JSON.stringify({
-                                event: "newMessage",
-                                newMessage: newMessage.data ? newMessage.data : null
+                                event: "newMessageAppeal",
+                                newMessage: { ...newMessage.data, appeal: chat.appeal }
                             }));
                         });
                     })
@@ -209,11 +211,10 @@ app.post("/chat/uploadFileWhatsapp", async function (req, res, next) {
 
     } else {
 
-
-
         let newMessage = await conceptApi.uploadFileAxelor({
             file, headers, messageAuthor, chat, appealType: 'whatsapp',
-            status: 'sent'
+            status: 'sent',
+            caption
         });
 
         let sendClients = [];
@@ -228,24 +229,20 @@ app.post("/chat/uploadFileWhatsapp", async function (req, res, next) {
                         });
                     }
                 }
-                console.log("sendClients: ", sendClients);
                 resolve();
             }).then(() => {
                 sendClients.forEach(sendClient => {
                     sendClient.ws.send(JSON.stringify({
-                        event: "newMessage",
-                        newMessage: newMessage.data ? newMessage.data : null
+                        event: "newMessageAppeal",
+                        newMessage: { ...newMessage.data, appeal: chat.appeal }
                     }));
                 });
             })
         }
-
-        let responseWhatsappFile = await whatsappApi.uploadFile({ phoneNumberId: chat.phoneNumberId, file, from: chat.phoneNumber });
+        let responseWhatsappFile = await whatsappApi.uploadFile({ file, from: chat.phoneNumber, caption });
         await conceptApi.deleteFile(file.path)
         await conceptApi.updateMessage({ headers, messageId: newMessage.data.id, messageSecretKey: responseWhatsappFile.messages[0].id });
     }
-
-
 
     res.send(200);
 });
@@ -277,7 +274,6 @@ app.post("/webhook", async (req, res) => {
             // console.log("userPhoneNumber: ", userPhoneNumber);
             // console.log("messages: ", messages);
             await conceptController.webhookController({ messages, phone_number_id, userName, userPhoneNumber, from, msg_id, appealType: 'whatsapp' });
-
         }
         if (req.body.entry &&
             req.body.entry[0].changes &&
@@ -295,7 +291,13 @@ app.post("/webhook", async (req, res) => {
             req.body.entry[0].changes[0].value.statuses[0].status === "failed"
         ) {
             let statuses = req.body.entry[0].changes[0].value.statuses[0];
-            await conceptController.updateMessage({ id: statuses.id, status: statuses.status });
+            // await conceptController.updateMessage({ id: statuses.id, status: statuses.status });
+            if (statuses.status === "delivered") {
+                await conceptController.updateMessage({ id: statuses.id, status: statuses.status });
+            }
+            if (statuses.status === "failed") {
+                await conceptController.updateMessage({ id: statuses.id, status: statuses.errors[0].code });
+            }
         }
         res.sendStatus(200);
     } else {
@@ -305,7 +307,6 @@ app.post("/webhook", async (req, res) => {
 
 app.get("/webhook", (req, res) => {
     const verify_token = process.env.VERIFY_TOKEN;
-
 
     let mode = req.query["hub.mode"];
     let token = req.query["hub.verify_token"];
@@ -357,6 +358,9 @@ app.ws("/ws", (ws, req) => {
             case "getContacts":
                 conceptController.getContacts({ ws, data: data.data });
                 break;
+            case "getDepartments":
+                conceptController.getDepartMents({ ws, data: data.data });
+                break;
             case "searchContacts":
                 conceptController.searchContacts({ ws, data: data.data });
                 break;
@@ -395,6 +399,24 @@ app.ws("/ws", (ws, req) => {
                 break;
             case "updateAppeal":
                 conceptController.updateAppealAndChat({ ws, data: data.data });
+                break;
+            case "createTemplate":
+                conceptController.createTemplate({ ws, data: data.data });
+                break;
+            case "getTemplates":
+                conceptController.getTemplates({ ws, data: data.data });
+                break;
+            case "updateTemplate":
+                conceptController.updateTemplate({ ws, data: data.data });
+                break;
+            case "deleteTemplate":
+                conceptController.deleteTemplate({ ws, data: data.data });
+                break;
+            case "addClient":
+                conceptController.addClient({ ws, data: data.data });
+                break;
+            case "transferClient":
+                conceptController.transferClient({ ws, data: data.data });
                 break;
         }
     });

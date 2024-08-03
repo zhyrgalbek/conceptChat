@@ -35,6 +35,10 @@ let fileTypes = {
         type: "STICKER",
         filestypes: ["image/webp"]
     },
+    video: {
+        type: "VIDEO",
+        filestypes: ["video/3gp", "video/mp4"]
+    }
 };
 
 let fileTypeArr = getFileType({ fileTypes });
@@ -56,13 +60,14 @@ exports.getType = function (fileType) {
 }
 
 function getFileType({ fileTypes }) {
-    let { image, document, sticker, audio } = fileTypes;
+    let { image, document, sticker, audio, video } = fileTypes;
     let arr = [];
     let imageTypes = gettypesArr(image);
     let documentTypes = gettypesArr(document);
     let stickerTypes = gettypesArr(sticker);
     let audioTypes = gettypesArr(audio);
-    arr = [...imageTypes, ...documentTypes, ...stickerTypes, ...audioTypes];
+    let videoTypes = gettypesArr(video);
+    arr = [...imageTypes, ...documentTypes, ...stickerTypes, ...audioTypes, ...videoTypes];
     return arr;
 }
 
