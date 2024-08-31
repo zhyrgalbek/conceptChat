@@ -6,11 +6,9 @@ const ffmpeg = require("fluent-ffmpeg");
 exports.newMessageOperatorSendClient = async function (req, res) {
     try {
         let { phoneNumberId, message, from, chatId, timestamp } = req.body.data;
-        console.log(req.body.data);
 
         let headers = await axelorApi.getHeaderSanaripTamga();
 
-        console.log(headers);
 
         await whatsappApi.sendMessage({
             phone_number_id: phoneNumberId,
@@ -39,7 +37,6 @@ exports.newMessageOperatorSendClient = async function (req, res) {
 
         res.status(200).send({ status: 0 });
     } catch (error) {
-        console.log(error.response.message);
         res.status(404).send({ message: "not found" });
     }
 }
@@ -54,7 +51,6 @@ exports.uploadOperatorSendClient = async function (req, res, next) {
                 .input(req.file.path)
                 .audioCodec("libmp3lame")
                 .on("end", async () => {
-                    console.log("Conversion finished!");
 
 
                     await axelorApi.uploadFileAxelor({
@@ -80,7 +76,7 @@ exports.uploadOperatorSendClient = async function (req, res, next) {
 
                     fs.unlink(file.path, err => {
                         if (err) throw err; // не удалось удалить файл
-                        console.log('Файл успешно удалён');
+                        // console.log('Файл успешно удалён');
                     });
 
                 })
@@ -89,7 +85,6 @@ exports.uploadOperatorSendClient = async function (req, res, next) {
                 })
                 .save(req.file.path + ".mp3");
         } else {
-            console.log(req.file);
 
             await whatsappApi.uploadFile({
                 phoneNumberId,
@@ -117,7 +112,6 @@ exports.newMessageClientSendOperator = async function (req, res) {
     // Parse the request body from the POST
 
     // Check the Incoming webhook message
-    console.log(JSON.stringify(req.body, null, 2));
     // info on WhatsApp text message payload: https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/payload-examples#text-messages
     if (req.body.object) {
         if (
@@ -151,12 +145,9 @@ exports.newMessageClientSendOperator = async function (req, res) {
                 });
 
                 new Promise(async (resolve, reject) => {
-                    console.log("promise");
-                    console.log("responseChat:", responseChat);
 
                     if (responseChat) {
                         chat = responseChat;
-                        console.log("1", chat);
                         resolve(chat);
                     } else {
                         let userContact = await axelorApi.examinationContact({
@@ -179,13 +170,11 @@ exports.newMessageClientSendOperator = async function (req, res) {
                             from,
                         });
                         chat = await ticket.chat;
-                        console.log("2", chat);
                         resolve(chat);
                     }
                 }).then(async (chat) => {
                     switch (messages.type) {
                         case "text":
-                            console.log("3", chat);
                             await axelorApi.newMessage({
                                 message: messages,
                                 chatId: chat.id,
@@ -227,7 +216,6 @@ exports.newMessageClientSendOperator = async function (req, res) {
                                 from,
                             });
 
-                            console.log(responseDmsFIle);
                             break;
                         case "document":
                             const responseFileDocument = await whatsappApi.getFile(
@@ -259,7 +247,6 @@ exports.newMessageClientSendOperator = async function (req, res) {
                                 from,
                             });
 
-                            console.log(responseDmsFIle);
                             break;
                         case "audio":
                             const responseFileAudio = await whatsappApi.getFile(messages, "audio");
@@ -288,7 +275,6 @@ exports.newMessageClientSendOperator = async function (req, res) {
                                 from,
                             });
 
-                            console.log(responseDmsFIle);
                             break;
                         default:
                             let autoMessage = {

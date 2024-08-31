@@ -13,55 +13,62 @@ async function getHeaderConcept() {
     // console.log(headers);
     // if (headers == null) {
     // console.log("start");
-
-    let responseAxelor = await axios({
-        method: "POST",
-        url: DOMAIN + "/callback",
-        data: {
-            username: process.env.BD_USER,
-            password: process.env.PASSWORD,
-        },
-        headers: {
-            "Content-Type": "application/json",
-        },
-    });
-    // console.log("end");
-    // console.log(responseAxelor);
-    headers = responseAxelor.headers["set-cookie"].toString();
-    // setTimeout(() => {
-    //   headers = null;
-    // }, 12000 * 60);
-    // } else {
-    //     return headers;
-    // }
-    return headers;
+    try {
+        let responseAxelor = await axios({
+            method: "POST",
+            url: DOMAIN + "/callback",
+            data: {
+                username: process.env.BD_USER,
+                password: process.env.PASSWORD,
+            },
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+        // console.log("end");
+        // console.log(responseAxelor);
+        headers = responseAxelor.headers["set-cookie"].toString();
+        // setTimeout(() => {
+        //   headers = null;
+        // }, 12000 * 60);
+        // } else {
+        //     return headers;
+        // }
+        return headers;
+    } catch (error) {
+        console.log(error);
+    }
 };
 
 exports.getHeaderConcept = getHeaderConcept;
 
 async function getUsers({ headers }) {
-    let obj = {
-        "offset": 0,
-        "limit": 40,
-        "fields": ["fullName", "code", "group"],
-        "sortBy": ["fullName"],
-        "data": {
-            "criteria": []
+    try {
+        let obj = {
+            "offset": 0,
+            "limit": 40,
+            "fields": ["fullName", "code", "group"],
+            "sortBy": ["fullName"],
+            "data": {
+                "criteria": []
+            }
         }
-    }
-    let response = await axios({
-        headers: {
-            "Content-Type": "application/json",
-            Cookie: headers,
-        },
-        method: "POST",
-        url: DOMAIN + "/ws/rest/com.axelor.apps.base.db.Partner/search",
-        data: JSON.stringify(obj),
-    });
-    if (response.data.data) {
-        return response.data.data;
-    } else {
-        return null;
+        let response = await axios({
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            method: "POST",
+            url: DOMAIN + "/ws/rest/com.axelor.apps.base.db.Partner/search",
+            data: JSON.stringify(obj),
+        });
+        if (response.data.data) {
+            return response.data.data;
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.log(error);
     }
 }
 
@@ -126,102 +133,114 @@ async function searchUsers({ headers, fullName, departMentId }) {
 exports.searchUsers = searchUsers;
 
 async function getChat({ headers, chatId }) {
-    let obj = {
-        "offset": 0,
-        "limit": 10,
-        "fields": ["phoneNumberId", "fromNumber", "chatSeans", "typeChats", "members", "unreadMessageCount", "appeal", "completedUsers", "appeal.id", "appeal.status"],
-        "data": {
-            "criteria": [{
-                "fieldName": "id",
-                "operator": "=",
-                "value": chatId
-            }]
+    try {
+        let obj = {
+            "offset": 0,
+            "limit": 10,
+            "fields": ["phoneNumberId", "fromNumber", "chatSeans", "typeChats", "members", "unreadMessageCount", "appeal", "completedUsers", "appeal.id", "appeal.status"],
+            "data": {
+                "criteria": [{
+                    "fieldName": "id",
+                    "operator": "=",
+                    "value": chatId
+                }]
+            }
         }
-    }
-    let response = await axios({
-        headers: {
-            "Content-Type": "application/json",
-            Cookie: headers,
-        },
-        method: "POST",
-        url: DOMAIN + "/ws/rest/com.axelor.apps.msg.db.Chat/search",
-        data: JSON.stringify(obj),
-    });
-    if (response.data.data) {
-        return response.data.data[0];
-    } else {
-        return null;
+        let response = await axios({
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            method: "POST",
+            url: DOMAIN + "/ws/rest/com.axelor.apps.msg.db.Chat/search",
+            data: JSON.stringify(obj),
+        });
+        if (response.data.data) {
+            return response.data.data[0];
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.log(error);
     }
 }
 
 exports.getChat = getChat;
 
 async function getDepartMents({ headers, currentUserId, id }) {
-    let obj = {
-        "offset": 0,
-        "limit": 200,
-        "fields": ["code", "name"],
-    }
-    if (id) {
-        obj.data.criteria[0].fieldName = "id";
-        obj.data.criteria[0].operator = "=";
-        obj.data.criteria[0].value = id;
-    }
-    let response = await axios({
-        headers: {
-            "Content-Type": "application/json",
-            Cookie: headers,
-        },
-        method: "POST",
-        url: DOMAIN + "/ws/rest/com.axelor.apps.base.db.CompanyDepartment/search",
-        data: JSON.stringify(obj),
-    });
-    if (response.data.data) {
-        return response.data.data;
-    } else {
-        return null;
+    try {
+        let obj = {
+            "offset": 0,
+            "limit": 200,
+            "fields": ["code", "name"],
+        }
+        if (id) {
+            obj.data.criteria[0].fieldName = "id";
+            obj.data.criteria[0].operator = "=";
+            obj.data.criteria[0].value = id;
+        }
+        let response = await axios({
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            method: "POST",
+            url: DOMAIN + "/ws/rest/com.axelor.apps.base.db.CompanyDepartment/search",
+            data: JSON.stringify(obj),
+        });
+        if (response.data.data) {
+            return response.data.data;
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.log(error);
     }
 }
 
 exports.getDepartMents = getDepartMents;
 
 async function getAllChats({ headers, currentUserId, typeChat }) {
-    let obj = {
-        offset: 0,
-        limit: 10,
-        fields: ["phoneNumberId", "fromNumber", "chatSeans", "typeChats", "members"],
-        data: {
-            criteria: [{
-                operator: "and",
-                criteria: [
-                    {
-                        fieldName: "members.id",
-                        operator: "=",
-                        value: currentUserId
-                    }
-                    // {
-                    //     fieldName: "typeChats",
-                    //     operator: "=",
-                    //     value: typeChat
-                    // },
-                ]
-            }]
-        }
-    };
+    try {
+        let obj = {
+            offset: 0,
+            limit: 10,
+            fields: ["phoneNumberId", "fromNumber", "chatSeans", "typeChats", "members"],
+            data: {
+                criteria: [{
+                    operator: "and",
+                    criteria: [
+                        {
+                            fieldName: "members.id",
+                            operator: "=",
+                            value: currentUserId
+                        }
+                        // {
+                        //     fieldName: "typeChats",
+                        //     operator: "=",
+                        //     value: typeChat
+                        // },
+                    ]
+                }]
+            }
+        };
 
-    let response = await axios({
-        headers: {
-            "Content-Type": "application/json",
-            Cookie: headers,
-        },
-        method: "POST",
-        url: DOMAIN + "/ws/rest/com.axelor.apps.msg.db.Chat/search",
-        data: JSON.stringify(obj),
-    });
-    if (response.data.data) {
-        return response.data.data;
-    } else {
-        return null;
+        let response = await axios({
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            method: "POST",
+            url: DOMAIN + "/ws/rest/com.axelor.apps.msg.db.Chat/search",
+            data: JSON.stringify(obj),
+        });
+        if (response.data.data) {
+            return response.data.data;
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.log(error);
     }
 }
 
@@ -291,57 +310,61 @@ async function getAllChats2({ headers, currentUserId }) {
 exports.getAllChats2 = getAllChats2;
 
 async function getMessagesChat({ headers, chatId, limit = 40 }) {
-    let obj = {
-        offset: 0,
-        limit: limit,
-        sortBy: ["-createdOn"],
-        fields: [
-            "fileSize",
-            "fileName",
-            "fileId",
-            "fileType",
-            "messageSecretKey",
-            "type",
-            "body",
-            "timestamp",
-            "fromNumber",
-            "operatorName",
-            "messageAuthor",
-            "chat",
-            "appeal",
-            "transfer",
-            "transfer.fromTr",
-            "flags",
-            "status",
-            "appealType",
-            "messageType",
-            "prevMessageSecretKey",
-            "prevMessageId",
-            "caption"
-        ],
-        data: {
-            criteria: [
-                {
-                    fieldName: "chat.id",
-                    operator: "=",
-                    value: chatId
-                }
-            ]
+    try {
+        let obj = {
+            offset: 0,
+            limit: limit,
+            sortBy: ["-createdOn"],
+            fields: [
+                "fileSize",
+                "fileName",
+                "fileId",
+                "fileType",
+                "messageSecretKey",
+                "type",
+                "body",
+                "timestamp",
+                "fromNumber",
+                "operatorName",
+                "messageAuthor",
+                "chat",
+                "appeal",
+                "transfer",
+                "transfer.fromTr",
+                "flags",
+                "status",
+                "appealType",
+                "messageType",
+                "prevMessageSecretKey",
+                "prevMessageId",
+                "caption"
+            ],
+            data: {
+                criteria: [
+                    {
+                        fieldName: "chat.id",
+                        operator: "=",
+                        value: chatId
+                    }
+                ]
+            }
+        };
+        let response = await axios({
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            method: "POST",
+            url: DOMAIN + "/ws/rest/com.axelor.message.db.Message/search",
+            data: JSON.stringify(obj),
+        });
+        if (response.data.data) {
+            return response.data;
+        } else {
+            return { ...response.data, data: [] };
         }
-    };
-    let response = await axios({
-        headers: {
-            "Content-Type": "application/json",
-            Cookie: headers,
-        },
-        method: "POST",
-        url: DOMAIN + "/ws/rest/com.axelor.message.db.Message/search",
-        data: JSON.stringify(obj),
-    });
-    if (response.data.data) {
-        return response.data;
-    } else {
-        return { ...response.data, data: [] };
+    } catch (error) {
+        console.log(error);
     }
 }
 
@@ -406,6 +429,7 @@ async function lastMessageChat({ headers, chat }) {
             throw new Error(`${response.status} ${response.statusText}`);
         }
     } catch (error) {
+        console.log(error.message)
         return error.message;
     }
 }
@@ -413,23 +437,32 @@ async function lastMessageChat({ headers, chat }) {
 exports.lastMessageChat = lastMessageChat;
 
 async function isReadMessages({ headers, chat, currentUser }) {
-    let obj = {
-        chat: chat,
-        user: currentUser
-    };
-    let response = await axios({
-        headers: {
-            "Content-Type": "application/json",
-            Cookie: headers,
-        },
-        method: "POST",
-        url: DOMAIN + "/ws/chats/flags",
-        data: JSON.stringify(obj)
-    });
-    if (response.data.status === 0) {
-        return response.data;
-    } else {
-        return null;
+    try {
+        let obj = {
+            chat: chat,
+            user: currentUser
+        };
+        let response = await axios({
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            method: "POST",
+            url: DOMAIN + "/ws/chats/flags",
+            data: JSON.stringify(obj)
+        });
+        if (response.status === 200) {
+            if (response.data.status === 0 && response.data) {
+                return response.data;
+            } else {
+                return null;
+            }
+        } else {
+            throw new Error(`${response.status} ${response.statusText}`);
+        }
+    } catch (error) {
+        console.log(error.message)
+        return error.message;
     }
 }
 
@@ -451,66 +484,77 @@ async function createMessage({
     prevMessageSecretKey,
     prevMessageId
 }) {
-    let obj = {
-        type: message.type.toUpperCase(),
-        timestamp: message.timestamp ?? null,
-        messageAuthor: messageAuthor ?? null,
-        fromNumber: from ?? "",
-        chat: {
-            id: chatId,
-        },
-        status: status ?? null,
-        messageSecretKey: msg_id ?? null,
-        appealType: appealType ?? null,
-    };
-    if (message.text) {
-        obj.body = message.text.body;
-    }
-    if (appeal) {
-        obj.appeal = {
-            id: appeal.id
+    try {
+        let obj = {
+            type: message.type.toUpperCase(),
+            timestamp: message.timestamp ?? null,
+            messageAuthor: messageAuthor ?? null,
+            fromNumber: from ?? "",
+            chat: {
+                id: chatId,
+            },
+            status: status ?? null,
+            messageSecretKey: msg_id ?? null,
+            appealType: appealType ?? null,
         };
-    }
-    if (file) {
-        obj.fileSize = file.fileSize;
-        obj.fileName = file.fileName;
-        obj.fileId = file.fileId;
-        obj.fileType = file.fileType;
-    }
-    if (messageType) {
-        obj.messageType = messageType; //transfer | other
-    }
-    if (transfer) {
-        obj.transfer = {
-            id: transfer.id
+        if (message.text) {
+            obj.body = message.text.body;
         }
-    }
-    if (prevMessageSecretKey) {
-        obj.prevMessageSecretKey = prevMessageSecretKey;
-    }
-    if (message?.context?.id) {
-        obj.prevMessageSecretKey = message.context.id;
-    }
-    if (prevMessageId) {
-        obj.prevMessageId = prevMessageId;
-    }
-    if (message[message.type]?.caption) {
-        obj.caption = message[message.type].caption;
-    }
+        if (appeal) {
+            obj.appeal = {
+                id: appeal.id
+            };
+        }
+        if (file) {
+            obj.fileSize = file.fileSize;
+            obj.fileName = file.fileName;
+            obj.fileId = file.fileId;
+            obj.fileType = file.fileType;
+        }
+        if (messageType) {
+            obj.messageType = messageType; //transfer | other
+        }
+        if (transfer) {
+            obj.transfer = {
+                id: transfer.id
+            }
+        }
+        if (prevMessageSecretKey) {
+            obj.prevMessageSecretKey = prevMessageSecretKey;
+        }
+        if (message?.context?.id) {
+            obj.prevMessageSecretKey = message.context.id;
+        }
+        if (prevMessageId) {
+            obj.prevMessageId = prevMessageId;
+        }
+        if (message[message.type]?.caption) {
+            obj.caption = message[message.type].caption;
+        }
 
-    console.log("createMessageAnswer: ", obj);
-
-    let response = await axios({
-        headers: {
-            "Content-Type": "application/json",
-            Cookie: headers,
-        },
-        method: "POST",
-        url: DOMAIN + "/ws/chats/message",
-        data: JSON.stringify(obj),
-    });
-
-    return response.data;
+        let response = await axios({
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            method: "POST",
+            url: DOMAIN + "/ws/chats/message",
+            data: JSON.stringify(obj),
+        });
+        console.log({ createMessage: response })
+        if (response.status === 200) {
+            if (response.data.status === 0 && response.data) {
+                return response.data;
+            } else {
+                return null;
+            }
+        } else {
+            throw new Error(`${response.status} ${response.statusText}`);
+        }
+    } catch (error) {
+        console.log(error.message)
+        return error.message;
+    }
 }
 
 exports.createMessage = createMessage;
@@ -572,6 +616,7 @@ async function findeMessageSecretKey({ headers, messageSecretKey }) {
             throw new Error(`${response.status} ${response.statusText}`);
         }
     } catch (error) {
+        console.log(error.message)
         return error.message;
     }
 }
@@ -591,7 +636,6 @@ async function updateMessage({ headers, messageId, status, messageSecretKey }) {
         if (messageSecretKey) {
             obj.data.messageSecretKey = messageSecretKey;
         }
-        console.log("obj: ", obj);
         let response = await axios({
             headers: {
                 "Content-Type": "application/json",
@@ -611,6 +655,7 @@ async function updateMessage({ headers, messageId, status, messageSecretKey }) {
             throw new Error(`${response.status} ${response.statusText}`);
         }
     } catch (error) {
+        console.log(error.message);
         return error.message;
     }
 
@@ -652,7 +697,8 @@ async function createChat({ headers, currentUserId, userId, typeChat }) {
             throw new Error("dont create chat");
         }
     } catch (error) {
-        return error;
+        console.log(error.message)
+        return error.message;
     }
 
 }
@@ -679,6 +725,7 @@ async function getChatTwoUsers({ headers, currentUserId: userId1, userId: userId
             throw new Error("dont etharnet");
         }
     } catch (error) {
+        console.log(error.message)
         return error.message;
     }
 }
@@ -723,6 +770,7 @@ async function getAppeals({ headers, status }) {
             throw new Error(`${response.status} ${response.statusText}`);
         }
     } catch (error) {
+        console.log(error.message)
         return error.message;
     }
 }
@@ -855,7 +903,6 @@ async function searchAppeal({ headers, phoneNumber, name, client }) {
                 operator: "like",
                 value: phoneNumber
             }]
-            console.log("responseSearchUser: ", JSON.stringify(obj));
         }
         if (name) {
             obj.data.criteria[0].criteria = [{
@@ -921,6 +968,7 @@ async function searchActiveClients({ headers, phoneNumber, name, currentUserId }
             throw new Error(`${response.status} ${response.statusText}`);
         }
     } catch (error) {
+        console.log(error.message);
         return error.message;
     }
 }
@@ -939,8 +987,6 @@ async function searchActiveUsers({ headers, name, currentUserId }) {
             url: DOMAIN + "/ws/chats/" + currentUserId.id + "?userSearch=" + searchText,
         });
 
-        console.log("response.status: ", response.status)
-
         if (response.status === 200) {
             if (response.data.status === 0 && response.data.data) {
                 return response.data.data;
@@ -954,6 +1000,7 @@ async function searchActiveUsers({ headers, name, currentUserId }) {
             throw new Error(`${response.status} ${response.statusText}`);
         }
     } catch (error) {
+        console.log(error.message);
         return error.message;
     }
 }
@@ -994,6 +1041,7 @@ async function createChatAppeal({ headers, phone_number_id, appealId, from }) {
             throw new Error(`${response.status} ${response.statusText}`);
         }
     } catch (error) {
+        console.log(error.message)
         return error.message;
     }
 }
@@ -1033,6 +1081,7 @@ async function existenceCheckAppeal({ headers, userPhoneNumber }) {
             throw new Error(`${response.status} ${response.statusText}`);
         }
     } catch (error) {
+        console.log(error.message);
         return error.message;
     }
 }
@@ -1055,10 +1104,10 @@ async function updateAppeal({ headers, appeal, status, transfer, name, phoneNumb
                 id: transfer.id
             }]
         }
-        if(name){
+        if (name) {
             obj.data.name = name;
         }
-        if(phoneNumber){
+        if (phoneNumber) {
             obj.data.phoneNumber = phoneNumber;
         }
         let response = await axios({
@@ -1081,6 +1130,7 @@ async function updateAppeal({ headers, appeal, status, transfer, name, phoneNumb
             throw new Error(`${response.status} ${response.statusText}`);
         }
     } catch (error) {
+        console.log(error.message)
         return error.message;
     }
 }
@@ -1119,6 +1169,7 @@ async function updateChat({ headers, chat, members, completedUsers }) {
             throw new Error(`${response.status} ${response.statusText}`);
         }
     } catch (error) {
+        console.log(error.message)
         return error.message;
     }
 }
@@ -1159,6 +1210,7 @@ async function getAppeal({ headers, appeal }) {
             throw new Error(`${response.status} ${response.statusText}`);
         }
     } catch (error) {
+        console.log(error.message);
         return error.message;
     }
 }
@@ -1193,6 +1245,7 @@ exports.createLead = async function ({ name, mobilePhone, appealSource = "whatsa
             throw new Error(`${response.status} ${response.statusText}`);
         }
     } catch (error) {
+        console.log(error.message)
         return error;
     }
 }
@@ -1227,6 +1280,7 @@ exports.updateLead = async function ({ id, version }) {
             throw new Error(`${response.status} ${response.statusText}`);
         }
     } catch (error) {
+        console.log(error.message)
         return error.message;
     }
 }
@@ -1275,6 +1329,7 @@ exports.searchLead = async function ({ mobilePhone }) {
             throw new Error(`${response.status} ${response.statusText}`);
         }
     } catch (error) {
+        console.log(error.message);
         return error.message;
     }
 }
@@ -1310,6 +1365,7 @@ exports.createTransfer = async function ({ headers, transferTo, transferFrom }) 
             throw new Error(`${response.status} ${response.statusText}`);
         }
     } catch (error) {
+        console.log(error.message)
         return error.message;
     }
 }
@@ -1335,97 +1391,101 @@ exports.getTransferChat = async function ({ headers, chatId }) {
             throw new Error(`${response.status} ${response.statusText}`);
         }
     } catch (error) {
+        console.log(error.message)
         return error.message;
     }
 }
 
 exports.uploadFileAxelor = async function ({ file, headers, messageAuthor, chat, appealType, status, caption }) {
     // let headers = await getHeaderConcept();
-    let typeHeaders = {
-        Cookie: headers,
-        "Content-Type": "application/octet-stream",
-        "X-File-Type": file.mimetype,
-        "X-File-Offset": 0,
-        "X-File-Size": file.size,
-        "X-File-Name": encodeURI(file.filename),
-    };
-
-    // console.log("headers: ", headers);
-    // console.log("typeHeaders: ", typeHeaders);
-
-    let uploadFile = await uploadChunk1({
-        headers,
-        typeHeaders,
-        file: await fs.createReadStream(file.path),
-    });
-    // console.log("uploadFile: ", uploadFile);
-
-    // let chat = await getChat({
-    //     currentUserId,
-    //     userId,
-    //     typeChats: typeChat,
-    //     headers,
-    // });
-
-    // console.log("chat: ", chat);
-
-    let dmsFileData = {
-        fileName: uploadFile.data.fileName,
-        metaFile: { id: uploadFile.data.id },
-        relatedId: chat.id,
-        relatedModel: "com.axelor.apps.msg.db.Chat",
-    };
-    // console.log("dmsFileData: ", dmsFileData);
-    let responseDmsFIle = await axios({
-        url: DOMAIN + "/ws/rest/com.axelor.dms.db.DMSFile",
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
+    try {
+        let typeHeaders = {
             Cookie: headers,
-        },
-        data: {
-            data: dmsFileData,
-        },
-    });
+            "Content-Type": "application/octet-stream",
+            "X-File-Type": file.mimetype,
+            "X-File-Offset": 0,
+            "X-File-Size": file.size,
+            "X-File-Name": encodeURI(file.filename),
+        };
 
-    // console.log("responseDmsFIle: ", responseDmsFIle);
+        // console.log("headers: ", headers);
+        // console.log("typeHeaders: ", typeHeaders);
 
-    let newMessageObj = {
-        fileSize: responseDmsFIle.data.data[0]["metaFile.sizeText"],
-        fileName: responseDmsFIle.data.data[0].metaFile.fileName,
-        fileId: responseDmsFIle.data.data[0].id,
-        fileType: responseDmsFIle.data.data[0].fileType,
-    };
+        let uploadFile = await uploadChunk1({
+            headers,
+            typeHeaders,
+            file: await fs.createReadStream(file.path),
+        });
+        // console.log("uploadFile: ", uploadFile);
 
-    // console.log("newMessageObj: ", newMessageObj);
+        // let chat = await getChat({
+        //     currentUserId,
+        //     userId,
+        //     typeChats: typeChat,
+        //     headers,
+        // });
+
+        // console.log("chat: ", chat);
+
+        let dmsFileData = {
+            fileName: uploadFile.data.fileName,
+            metaFile: { id: uploadFile.data.id },
+            relatedId: chat.id,
+            relatedModel: "com.axelor.apps.msg.db.Chat",
+        };
+        // console.log("dmsFileData: ", dmsFileData);
+        let responseDmsFIle = await axios({
+            url: DOMAIN + "/ws/rest/com.axelor.dms.db.DMSFile",
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            data: {
+                data: dmsFileData,
+            },
+        });
+
+        // console.log("responseDmsFIle: ", responseDmsFIle);
+
+        let newMessageObj = {
+            fileSize: responseDmsFIle.data.data[0]["metaFile.sizeText"],
+            fileName: responseDmsFIle.data.data[0].metaFile.fileName,
+            fileId: responseDmsFIle.data.data[0].id,
+            fileType: responseDmsFIle.data.data[0].fileType,
+        };
+
+        // console.log("newMessageObj: ", newMessageObj);
 
 
-    let message = {
-        type: whatsappFileTypes.getType(file.mimetype),
-        timestamp: createTimeStamp(),
+        let message = {
+            type: whatsappFileTypes.getType(file.mimetype),
+            timestamp: createTimeStamp(),
 
-    };
-    if (caption) {
-        message[message.type] = {
-            caption: caption
+        };
+        if (caption) {
+            message[message.type] = {
+                caption: caption
+            }
         }
+        // { message, chatId, messageAuthor, from, headers, file }
+        let response = await createMessage({
+            message,
+            chatId: chat.id,
+            messageAuthor,
+            headers,
+            file: newMessageObj,
+            appealType,
+            status
+        });
+
+        // console.log(response);
+
+        return response;
+    } catch (error) {
+        console.log(error.message);
+        return error.message;
     }
-    console.log("message: ", message);
-    // { message, chatId, messageAuthor, from, headers, file }
-    let response = await createMessage({
-        message,
-        chatId: chat.id,
-        messageAuthor,
-        headers,
-        file: newMessageObj,
-        appealType,
-        status
-    });
-
-    // console.log(response);
-
-
-    return response;
     // console.log(response);
 };
 
@@ -1441,7 +1501,8 @@ async function uploadChunk1({ typeHeaders, file, headers }) {
 
         return uploadFile;
     } catch (error) {
-        return error;
+        console.log(error.message);
+        return error.message;
     }
 }
 
@@ -1453,65 +1514,70 @@ exports.uploadFileChunks = async function ({
     type,
     headers
 }) {
-    let fileSize = responseFile.file_size;
-    let fileSha256 = responseFile.sha256;
-    let fileNameType = "";
-    if (type === "image") {
-        fileNameType = messages[type].mime_type.split("/");
-        fileNameType = "." + fileNameType[1];
-    }
-    let typeHeaders = {
-        Cookie: headers,
-        "Content-Type": "application/octet-stream",
-        "X-File-Type": messages[type].mime_type,
-        "X-File-Offset": 0,
-        "X-File-Size": fileSize,
-        "X-File-Name":
-            messages.type === "document"
-                ? encodeURI(messages.document.filename)
-                : encodeURI("Whatsapp " + type + messages.timestamp) + fileNameType,
-    };
-
-    let uploadFile = await uploadChunk1({
-        typeHeaders,
-        file: responseFile.file,
-    });
-    // console.log("uploadFile: ", uploadFile);
-
-    // let chat = await getChat({
-    //     phoneNumberId: phone_number_id,
-    //     from: from,
-    //     typeChats: "whatsapp",
-    //     headers,
-    // });
-
-    let dmsFileData = {
-        fileName: uploadFile.data.fileName,
-        metaFile: { id: uploadFile.data.id },
-        relatedId: chat.id,
-        relatedModel: "com.axelor.apps.msg.db.Chat",
-    };
-
-    let responseDmsFIle = await axios({
-        url: DOMAIN + "/ws/rest/com.axelor.dms.db.DMSFile",
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
+    try {
+        let fileSize = responseFile.file_size;
+        let fileSha256 = responseFile.sha256;
+        let fileNameType = "";
+        if (type === "image") {
+            fileNameType = messages[type].mime_type.split("/");
+            fileNameType = "." + fileNameType[1];
+        }
+        let typeHeaders = {
             Cookie: headers,
-        },
-        data: {
-            data: dmsFileData,
-        },
-    });
-    // console.log("responseDmsFIle: ", responseDmsFIle);
-    let newMessage = {
-        fileSize: responseDmsFIle.data.data[0]["metaFile.sizeText"],
-        fileName: responseDmsFIle.data.data[0].metaFile.fileName,
-        fileId: responseDmsFIle.data.data[0].id,
-        fileType: responseDmsFIle.data.data[0].fileType,
-    };
-    // console.log(newMessage);
-    return newMessage;
+            "Content-Type": "application/octet-stream",
+            "X-File-Type": messages[type].mime_type,
+            "X-File-Offset": 0,
+            "X-File-Size": fileSize,
+            "X-File-Name":
+                messages.type === "document"
+                    ? encodeURI(messages.document.filename)
+                    : encodeURI("Whatsapp " + type + messages.timestamp) + fileNameType,
+        };
+
+        let uploadFile = await uploadChunk1({
+            typeHeaders,
+            file: responseFile.file,
+        });
+        // console.log("uploadFile: ", uploadFile);
+
+        // let chat = await getChat({
+        //     phoneNumberId: phone_number_id,
+        //     from: from,
+        //     typeChats: "whatsapp",
+        //     headers,
+        // });
+
+        let dmsFileData = {
+            fileName: uploadFile.data.fileName,
+            metaFile: { id: uploadFile.data.id },
+            relatedId: chat.id,
+            relatedModel: "com.axelor.apps.msg.db.Chat",
+        };
+
+        let responseDmsFIle = await axios({
+            url: DOMAIN + "/ws/rest/com.axelor.dms.db.DMSFile",
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            data: {
+                data: dmsFileData,
+            },
+        });
+        // console.log("responseDmsFIle: ", responseDmsFIle);
+        let newMessage = {
+            fileSize: responseDmsFIle.data.data[0]["metaFile.sizeText"],
+            fileName: responseDmsFIle.data.data[0].metaFile.fileName,
+            fileId: responseDmsFIle.data.data[0].id,
+            fileType: responseDmsFIle.data.data[0].fileType,
+        };
+        // console.log(newMessage);
+        return newMessage;
+    } catch (error) {
+        console.log(error.message)
+        return error.message;
+    }
 };
 
 function createTimeStamp() {

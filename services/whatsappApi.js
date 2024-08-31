@@ -11,23 +11,44 @@ const token = process.env.WHATSAPP_TOKEN;
 const WHATSAPP_BUSINESS_ACCOUNT_ID = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 
-console.log(whatsappFileTypes.getType("application/vnd.ms-publisher"));
-
 exports.readMessage = async function ({ phone_number_id, token, msg_id }) {
-    let responseRead = await axios({
-        method: "POST",
-        url: "https://graph.facebook.com/v17.0/" + PHONE_NUMBER_ID + "/messages",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + token,
-        },
-        data: {
-            messaging_product: "whatsapp",
-            status: "read",
-            message_id: msg_id,
-        },
-    });
-    return responseRead;
+    try {
+        let responseRead = await axios({
+            method: "POST",
+            url: "https://graph.facebook.com/v17.0/" + PHONE_NUMBER_ID + "/messages",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+            },
+            data: {
+                messaging_product: "whatsapp",
+                status: "read",
+                message_id: msg_id,
+            },
+        });
+        return responseRead;
+    } catch (error) {
+        if (error.response) {
+            // The request was made and the server responded with a status code
+            console.error(
+                "Error uploading media. Server responded with:",
+                error.response.status,
+                error.response.data
+            );
+        } else if (error.request) {
+            // The request was made but no response was received
+            console.error(
+                "Error uploading media. No response received from the server."
+            );
+        } else {
+            // Something happened in setting up the request that triggered an Error
+            console.error(
+                "Error uploading media. Request setup error:",
+                error.message
+            );
+        }
+        return null;
+    }
 };
 
 exports.sendMessage = async function ({
@@ -186,75 +207,77 @@ async function sendMessageFileId({
     filename,
     caption
 }) {
-    // console.log(phone_number_id, token, from, mimtype, id);
-    let type = whatsappFileTypes.getType(mimtype);
-    console.log("mimtype: ", mimtype);
-    console.log("filetype: ", type);
-    // console.log("phone_number_id: ", phone_number_id);
-    // console.log("token: ", token);
-    // console.log("from: ", from);
-    // console.log("mimtype: ", mimtype);
-    // console.log("id: ", id);
-    // console.log("filename: ", filename);
-    // console.log("type: ", type.toLowerCase());
-    if (type.toLowerCase() !== "document") {
+    try {
+        // console.log(phone_number_id, token, from, mimtype, id);
+        let type = whatsappFileTypes.getType(mimtype);
+        // console.log("phone_number_id: ", phone_number_id);
+        // console.log("token: ", token);
+        // console.log("from: ", from);
+        // console.log("mimtype: ", mimtype);
+        // console.log("id: ", id);
+        // console.log("filename: ", filename);
+        // console.log("type: ", type.toLowerCase());
+        if (type.toLowerCase() !== "document") {
 
-        let obj = {
-            messaging_product: "whatsapp",
-            to: from,
-            // recipient_type: "individual",
-            type: type.toLowerCase(),
-            [type.toLowerCase()]: {
-                id: id,
-            },
-        }
+            let obj = {
+                messaging_product: "whatsapp",
+                to: from,
+                // recipient_type: "individual",
+                type: type.toLowerCase(),
+                [type.toLowerCase()]: {
+                    id: id,
+                },
+            }
 
-        if (caption) {
-            obj[type.toLowerCase()].caption = caption;
-        }
+            if (caption) {
+                obj[type.toLowerCase()].caption = caption;
+            }
 
-        let response = await axios({
-            method: "POST", // Required, HTTP method, a string, e.g. POST, GET
-            url:
-                "https://graph.facebook.com/v12.0/" +
-                PHONE_NUMBER_ID +
-                "/messages?access_token=" +
-                token,
-            data: obj,
-            headers: {
-                Authorization: "Bearer " + token,
-                "Content-Type": "application/json",
-            },
-        });
-        return response.data;
-    } else {
-        let obj = {
-            messaging_product: "whatsapp",
-            to: from,
-            // recipient_type: "individual",
-            type: type.toLowerCase(),
-            [type.toLowerCase()]: {
-                id: id,
-                filename: filename,
-            },
+            let response = await axios({
+                method: "POST", // Required, HTTP method, a string, e.g. POST, GET
+                url:
+                    "https://graph.facebook.com/v12.0/" +
+                    PHONE_NUMBER_ID +
+                    "/messages?access_token=" +
+                    token,
+                data: obj,
+                headers: {
+                    Authorization: "Bearer " + token,
+                    "Content-Type": "application/json",
+                },
+            });
+            return response.data;
+        } else {
+            let obj = {
+                messaging_product: "whatsapp",
+                to: from,
+                // recipient_type: "individual",
+                type: type.toLowerCase(),
+                [type.toLowerCase()]: {
+                    id: id,
+                    filename: filename,
+                },
+            }
+            if (caption) {
+                obj[type.toLowerCase()].caption = caption;
+            }
+            let response = await axios({
+                method: "POST", // Required, HTTP method, a string, e.g. POST, GET
+                url:
+                    "https://graph.facebook.com/v12.0/" +
+                    phone_number_id +
+                    "/messages?access_token=" +
+                    token,
+                data: obj,
+                headers: {
+                    Authorization: "Bearer " + token,
+                    "Content-Type": "application/json",
+                },
+            });
+            return response.data;
         }
-        if (caption) {
-            obj[type.toLowerCase()].caption = caption;
-        }
-        let response = await axios({
-            method: "POST", // Required, HTTP method, a string, e.g. POST, GET
-            url:
-                "https://graph.facebook.com/v12.0/" +
-                phone_number_id +
-                "/messages?access_token=" +
-                token,
-            data: obj,
-            headers: {
-                Authorization: "Bearer " + token,
-                "Content-Type": "application/json",
-            },
-        });
-        return response.data;
+    } catch (error) {
+        console.log(error);
     }
     // console.log(response.data)
 }
@@ -265,7 +288,6 @@ exports.uploadFile = async function ({ file, from, caption }) {
         formData.append("file", fs.createReadStream(file.path), {
             contentType: file.mimetype,
         });
-        console.log("file: ", file);
         formData.append("messaging_product", "whatsapp");
         let response = await axios.post(
             `https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/media`,
