@@ -137,7 +137,18 @@ async function getChat({ headers, chatId }) {
         let obj = {
             "offset": 0,
             "limit": 10,
-            "fields": ["phoneNumberId", "fromNumber", "chatSeans", "typeChats", "members", "unreadMessageCount", "appeal", "completedUsers", "appeal.id", "appeal.status"],
+            "fields": [
+                "phoneNumberId",
+                "fromNumber",
+                "chatSeans",
+                "typeChats",
+                "members",
+                "unreadMessageCount",
+                "appeal",
+                "completedUsers",
+                "appeal.id",
+                "appeal.status"
+            ],
             "data": {
                 "criteria": [{
                     "fieldName": "id",
@@ -337,7 +348,13 @@ async function getMessagesChat({ headers, chatId, limit = 40 }) {
                 "messageType",
                 "prevMessageSecretKey",
                 "prevMessageId",
-                "caption"
+                "caption",
+                "messageCall.id",
+                "messageCall.type",
+                "messageCall.status",
+                "messageCall.recordId",
+                "messageCall.duration",
+                "messageCall.user",
             ],
             data: {
                 criteria: [
@@ -345,6 +362,75 @@ async function getMessagesChat({ headers, chatId, limit = 40 }) {
                         fieldName: "chat.id",
                         operator: "=",
                         value: chatId
+                    }
+                ]
+            }
+        };
+        console.log({ obj })
+        let response = await axios({
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: headers,
+            },
+            method: "POST",
+            url: DOMAIN + "/ws/rest/com.axelor.message.db.Message/search",
+            data: JSON.stringify(obj),
+        });
+        console.log({ response })
+        if (response.data.data) {
+            return response.data;
+        } else {
+            return { ...response.data, data: [] };
+        }
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+exports.getMessagesChat = getMessagesChat;
+
+async function searchMessage({ headers, chatId, messageId }) {
+    try {
+        let obj = {
+            offset: 0,
+            limit: 1,
+            sortBy: ["-createdOn"],
+            fields: [
+                "fileSize",
+                "fileName",
+                "fileId",
+                "fileType",
+                "messageSecretKey",
+                "type",
+                "body",
+                "timestamp",
+                "fromNumber",
+                "operatorName",
+                "messageAuthor",
+                "chat",
+                "appeal",
+                "transfer",
+                "transfer.fromTr",
+                "flags",
+                "status",
+                "appealType",
+                "messageType",
+                "prevMessageSecretKey",
+                "prevMessageId",
+                "caption",
+                "messageCall.id",
+                "messageCall.type",
+                "messageCall.status",
+                "messageCall.recordId",
+                "messageCall.duration",
+                "messageCall.user",
+            ],
+            data: {
+                criteria: [
+                    {
+                        fieldName: "id",
+                        operator: "=",
+                        value: messageId
                     }
                 ]
             }
@@ -368,7 +454,7 @@ async function getMessagesChat({ headers, chatId, limit = 40 }) {
     }
 }
 
-exports.getMessagesChat = getMessagesChat;
+exports.searchMessage = searchMessage;
 
 async function lastMessageChat({ headers, chat }) {
     try {
@@ -482,7 +568,8 @@ async function createMessage({
     messageType,
     transfer,
     prevMessageSecretKey,
-    prevMessageId
+    prevMessageId,
+    messageCall
 }) {
     try {
         let obj = {
@@ -495,8 +582,11 @@ async function createMessage({
             },
             status: status ?? null,
             messageSecretKey: msg_id ?? null,
-            appealType: appealType ?? null,
+            appealType: appealType ?? null
         };
+        if (messageCall) {
+            obj.messageCall = messageCall;
+        }
         if (message.text) {
             obj.body = message.text.body;
         }

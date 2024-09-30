@@ -619,6 +619,7 @@ exports.sendMessageWhatsapp = async function ({ ws, data }) {
                 newMessage: { ...newMessage.data, appeal: chat.appeal }
             }));
         });
+        
         let responseMessageWhatsapp = await whatsappApi.sendMessage({ phone_number_id: chat.phoneNumberId, from: chat.phoneNumber, message: message.text.body });
 
         if (responseMessageWhatsapp) {

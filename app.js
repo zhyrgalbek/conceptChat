@@ -1,26 +1,16 @@
 const express = require("express");
-const http = require('http');
 const body_parser = require("body-parser");
 const cors = require("cors");
 const multer = require("multer");
 const sanitizeFilename = require("sanitize-filename");
 const expressWs = require("express-ws");
 const app = express().use(body_parser.json());
-// const server = http.createServer(app);
 const wsInstance = expressWs(app);
-const jwt = require('jsonwebtoken');
 const FormData = require("FormData");
 require('dotenv').config();
 
-const chatController = require("./controllers/chatController");
-const SseController = require("./controllers/SseController");
-const onlineChatController = require("./controllers/onlineChatController");
-const whatsappController = require("./controllers/whatsappController");
 const conceptController = require("./controllers/conceptController");
-const { VERIFY_TOKEN } = require("./inc/inc");
-const path = require('path');
 const conceptApi = require("./services/conceptApi");
-const whatsappFileTypes = require("./services/whatsappFileTypes");
 const whatsappApi = require("./services/whatsappApi");
 const ffmpeg = require("fluent-ffmpeg");
 const fs = require("fs");
@@ -65,32 +55,7 @@ app.use(
     // express.static(path.join(__dirname, 'static'))
 );
 
-
-
 console.log(__dirname, 'static')
-
-// app.get("/chat", chatController.chatCtrl);
-// app.get("/chat/sse", SseController.SseCtrl);
-// app.get("/chat/onlineChat", onlineChatController.onlineChat); // Подключения к онлайн чату со стороны сайта
-// app.post("/chat/webhook/onlineChat/newMessage/operator", onlineChatController.newMessageOperatorSendClient); // Оператор добавляет новое сообщение
-// app.post("/chat/webhook/onlineChat/newMessage/client", onlineChatController.newMessageClientSendOperator); // Клиент добавляет новое сообщение
-// app.post("/chat/webhook/onlineChat", onlineChatController.signUporSignIn); // sign up or sign in 
-// app.post("/chat/onlineChat/upload", onlineChatController.fileUploade); // загрузка файла
-
-// app.post("/chat/whatsapp/newMessage/operator", whatsappController.newMessageOperatorSendClient); // Оператор отправляет сообщение к клиенту
-// app.post("/chat/whatsapp/upload", whatsappController.uploadOperatorSendClient); // Оператор отправляет файл к клиенту
-// app.post("/chat/whatsapp/newMessage/client"); // Клиент отправляет сообщение 
-// app.get("/chat/webhook", function (req, res){
-//     let mode = req.query['hub.mode'];
-//     let token = req.query['hub.verify_token'];
-//     let challenge = req.query['hub.challenge'];
-//     if(mode === "subscribe" && token === VERIFY_TOKEN){
-//         console.log("WEBHOOK_VERIFIED");
-//         res.status(200).send(challenge);
-//     } else {
-//         res.sendStatus(403);
-//     }
-// });
 
 let wsFile = null;
 
@@ -138,7 +103,7 @@ app.post("/chat/uploadFileAxelor", async function (req, res, next) {
 
     console.log(newMessage);
 
-    res.send(200);
+    res.sendStatus(200);
 });
 
 app.post("/chat/uploadFileWhatsapp", async function (req, res, next) {
@@ -244,7 +209,27 @@ app.post("/chat/uploadFileWhatsapp", async function (req, res, next) {
         await conceptApi.updateMessage({ headers, messageId: newMessage.data.id, messageSecretKey: responseWhatsappFile.messages[0].id });
     }
 
-    res.send(200);
+    res.sendStatus(200);
+});
+
+app.post("/call", async function (req, res) {
+    try {
+        const verify_token = process.env.VERIFY_TOKEN;
+        const authHeader = req.headers['authorization'];
+        if (authHeader && authHeader.startsWith("Bearer")) {
+            const token = authHeader.split(" ")[1];
+            if (token !== verify_token) {
+                throw new Error("no valid token!");
+            }
+            let data = req.body;
+            await conceptController.callMessage({ data });
+            res.sendStatus(200);
+        } else {
+            throw new Error("no valid token!");
+        }
+    } catch (error) {
+        res.sendStatus(404);
+    }
 });
 
 app.post("/webhook", async (req, res) => {

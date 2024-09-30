@@ -137,7 +137,7 @@ app.post("/chat/uploadFileAxelor", async function (req, res, next) {
 
     console.log(newMessage);
 
-    res.send(200);
+    res.sendStatus(200);
 });
 
 app.post("/chat/uploadFileWhatsapp", async function (req, res, next) {
@@ -234,7 +234,7 @@ app.post("/chat/uploadFileWhatsapp", async function (req, res, next) {
     }
 
 
-    res.send(200);
+    res.sendStatus(200);
 });
 
 app.post("/webhook", async (req, res) => {
